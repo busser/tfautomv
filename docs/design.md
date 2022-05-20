@@ -66,7 +66,7 @@ moved {
 }
 ```
 
-We want `tfautomv` to use the differences between the resources know attributes
+We want `tfautomv` to use the differences between the resources known attributes
 to match resources 1 to 1.
 
 Using differences between resource attributes has limitations. For example, if
