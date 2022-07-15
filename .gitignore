@@ -1,4 +1,10 @@
+# Terraform artifacts
 **/.terraform
 **/.terraform.lock.hcl
 **/terraform.tfstate
+
+# Compiled binaries
 bin/
+
+# Release artifacts
+dist/
