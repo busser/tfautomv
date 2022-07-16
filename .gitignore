@@ -8,3 +8,6 @@ bin/
 
 # Release artifacts
 dist/
+
+# Test artifacts
+internal/tfautomv/testdata/**/moves.tf
