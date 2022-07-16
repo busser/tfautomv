@@ -1,14 +1,9 @@
 moved {
-    from = random_pet.original_first
-    to   = random_pet.refactored_first
+  from = random_integer.first
+  to   = random_integer.alpha
 }
 
 moved {
-    from = random_pet.original_second
-    to   = random_pet.refactored_second
-}
-
-moved {
-    from = random_pet.original_third
-    to   = random_pet.refactored_third
+  from = random_integer.second
+  to   = random_integer.beta
 }
