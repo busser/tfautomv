@@ -57,14 +57,21 @@ Plan: 19 to add, 0 to change, 19 to destroy.
 ...
 
 $ tfautomv
-Generating moved blocks...
-Generated 19 moved blocks.
+Analysing Terraform plan...
+╷
+│ Done: Generated 3 moved blocks.
+╵
 
 $ terraform plan
 ...
 Plan: 0 to add, 0 to change, 0 to destroy.
 ...
 ```
+
+For details on which resources match and which don't, use the `-show-analysis`
+flag. Output looks like this:
+
+![analysis](docs/analysis.png)
 
 ## Known issues
 

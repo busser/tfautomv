@@ -35,9 +35,14 @@ func TestDetermineMovedBlocks(t *testing.T) {
 			setupWorkdir(t, tc.workdir)
 
 			workdir := filepath.Join(tc.workdir, "refactored-code")
-			_, err := tfautomv.GenerateMovedBlocks(workdir)
+			report, err := tfautomv.GenerateReport(workdir)
 			if err != nil {
-				t.Fatalf("generating moved blocks in %q: %v", workdir, err)
+				t.Fatalf("GenerateReport(%q): %v", workdir, err)
+			}
+
+			err = terraform.AppendMovesToFile(report.Moves, filepath.Join(workdir, "moves.tf"))
+			if err != nil {
+				t.Fatalf("AppendMovesToFile(): %v", err)
 			}
 
 			tf := terraform.NewRunner(workdir)

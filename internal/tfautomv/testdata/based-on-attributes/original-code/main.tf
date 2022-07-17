@@ -1,11 +1,11 @@
 resource "random_pet" "original_first" {
-    length = 1
+  length = 1
 }
 
 resource "random_pet" "original_second" {
-    length = 2
+  length = 2
 }
 
 resource "random_pet" "original_third" {
-    length = 3
+  length = 3
 }
