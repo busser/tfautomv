@@ -38,14 +38,8 @@ func flatten(result map[string]interface{}, prefix string, v reflect.Value) erro
 		if err != nil {
 			return err
 		}
-	case reflect.Int:
-		result[prefix] = int(v.Int())
-	case reflect.String:
-		result[prefix] = v.String()
-	case reflect.Bool:
-		result[prefix] = v.Bool()
 	default:
-		if !v.IsValid() {
+		if !v.IsValid() { // nil values
 			result[prefix] = nil
 			return nil
 		}

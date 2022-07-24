@@ -19,12 +19,14 @@ func TestToString(t *testing.T) {
 			obj: map[string]interface{}{
 				"string": "bar",
 				"int":    123,
+				"float":  1.23,
 				"bool":   true,
 				"nil":    nil,
 			},
 			want: map[string]interface{}{
 				"string": "bar",
 				"int":    123,
+				"float":  1.23,
 				"bool":   true,
 				"nil":    nil,
 			},
@@ -63,7 +65,8 @@ func TestToString(t *testing.T) {
 			obj: map[string]interface{}{
 				"string": "bar",
 				"map": map[string]interface{}{
-					"int": 0,
+					"int":   0,
+					"float": 1.23,
 					"map": map[string]interface{}{
 						"string": "foo",
 						"int":    123,
@@ -82,6 +85,7 @@ func TestToString(t *testing.T) {
 			want: map[string]interface{}{
 				"string":          "bar",
 				"map.int":         0,
+				"map.float":       1.23,
 				"map.map.string":  "foo",
 				"map.map.int":     123,
 				"map.map.slice.#": 7,

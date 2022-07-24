@@ -2,22 +2,37 @@ package tfautomv
 
 import (
 	"github.com/padok-team/tfautomv/internal/flatmap"
+	"github.com/padok-team/tfautomv/internal/slices"
 	"github.com/padok-team/tfautomv/internal/terraform"
 )
 
 // Analysis of resources planned for creation or destruction by Terraform and
 // whether these resource's types and attributes match.
 type Analysis struct {
-	// For each resource, its comparison with resources of the same type and the
-	// opposite planned operation.
-	Comparisons map[*Resource][]Comparison
-
 	// Index of resources based on whether they are planned for creation or
 	// destruction.
 	CreatedByType   map[string][]*Resource
 	DestroyedByType map[string][]*Resource
+
+	// For each resource, its comparison with resources of the same type and the
+	// opposite planned operation.
+	Comparisons map[*Resource][]Comparison
 }
 
+// Resource contains information about a Terraform resource.
+type Resource struct {
+	// The resource's type.
+	Type string
+
+	// The resource's address in Terraform's state.
+	Address string
+
+	// The resource's attributes, flattened.
+	Attributes map[string]interface{}
+}
+
+// AnalysisFromPlan reads the contents of plan and compares resources planned
+// for creation with resources planned for destruction of the same type.
 func AnalysisFromPlan(plan *terraform.Plan) (*Analysis, error) {
 
 	// We start with some preprocessing. We identify all ressources planned for
@@ -30,8 +45,8 @@ func AnalysisFromPlan(plan *terraform.Plan) (*Analysis, error) {
 	destroyedByType := make(map[string][]*Resource)
 
 	for _, c := range plan.ResourceChanges {
-		isCreated := sliceContains(c.Change.Actions, "create")
-		isDestroyed := sliceContains(c.Change.Actions, "delete")
+		isCreated := slices.Contains(c.Change.Actions, terraform.CreateAction)
+		isDestroyed := slices.Contains(c.Change.Actions, terraform.DeleteAction)
 
 		if !isCreated && !isDestroyed {
 			continue
@@ -96,13 +111,4 @@ func AnalysisFromPlan(plan *terraform.Plan) (*Analysis, error) {
 	}
 
 	return &analysis, nil
-}
-
-func sliceContains[T comparable](s []T, v T) bool {
-	for i := range s {
-		if s[i] == v {
-			return true
-		}
-	}
-	return false
 }

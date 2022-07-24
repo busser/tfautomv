@@ -1,5 +1,7 @@
 # Automatic Terraform `moved` blocks
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 When refactoring a Terraform codebase, you often need to write [`moved` blocks](https://www.terraform.io/language/modules/develop/refactoring#moved-block-syntax). This can be tedious. Let
 `tfautomv` do it for you.
 
@@ -78,3 +80,7 @@ flag. Output looks like this:
 Some configurations make it so that `tfautomv` cannot be certain about which
 resource matches which. For more information, see the failing
 `TestDetermineMovedBlocks/dependencies` test in the `internal/tfautomv` package.
+
+## License
+
+The code is licensed under the permissive Apache v2.0 license. [Read this](<https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)>) for a summary.

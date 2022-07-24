@@ -1,38 +1,9 @@
 package tfautomv
 
-import (
-	"github.com/padok-team/tfautomv/internal/terraform"
-)
+import "github.com/padok-team/tfautomv/internal/terraform"
 
-func GenerateReport(workdir string) (*Report, error) {
-	refactored := terraform.NewRunner(workdir)
-
-	err := refactored.Init()
-	if err != nil {
-		return nil, err
-	}
-
-	plan, err := refactored.Plan()
-	if err != nil {
-		return nil, err
-	}
-
-	analysis, err := AnalysisFromPlan(plan)
-	if err != nil {
-		return nil, err
-	}
-
-	moves := MovesFromAnalysis(analysis)
-
-	report := Report{
-		InitialPlan: plan,
-		Analysis:    analysis,
-		Moves:       moves,
-	}
-
-	return &report, nil
-}
-
+// MovesFromAnalysis identifies which resources should be moved from one
+// address to the other in Terraform's state, based on the provided analysis.
 func MovesFromAnalysis(analysis *Analysis) []terraform.Move {
 
 	// We choose to move a resource planned for destruction to a resource
@@ -63,6 +34,10 @@ func MovesFromAnalysis(analysis *Analysis) []terraform.Move {
 				}
 			}
 
+			if matchCountByResource[destroyed] != 1 {
+				continue
+			}
+
 			m := terraform.Move{
 				From: destroyed.Address,
 				To:   created.Address,
@@ -72,22 +47,4 @@ func MovesFromAnalysis(analysis *Analysis) []terraform.Move {
 	}
 
 	return moves
-}
-
-type Resource struct {
-	Type       string
-	Address    string
-	Attributes map[string]interface{}
-}
-
-func CountChanges(plan *terraform.Plan) int {
-	count := 0
-
-	for _, rc := range plan.ResourceChanges {
-		if sliceContains(rc.Change.Actions, "create") || sliceContains(rc.Change.Actions, "delete") {
-			count++
-		}
-	}
-
-	return count
 }

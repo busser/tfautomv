@@ -11,20 +11,25 @@ help: Makefile
 build: fmt vet
 	go build -o bin/tfautomv
 
-## fmt: Run go fmt against code
+## fmt: Format source code
 .PHONY: fmt
 fmt:
 	go fmt ./...
 
-## vet: Run go vet against code
+## vet: Vet source code
 .PHONY: vet
 vet:
 	go vet ./...
 
-## test: Run go test
+## test: Run unit tests
 .PHONY: test
 test:
 	go test ./...
+
+## test-e2e: Run all tests, including end-to-end tests
+.PHONY: test-e2e
+test-e2e:
+	go test -tags=e2e ./...
 
 ## release: Release a new version
 .PHONY: release

@@ -34,23 +34,43 @@ func run() error {
 		return nil
 	}
 
-	fmt.Fprint(os.Stderr, format.Info("Analysing Terraform plan..."))
+	tf := terraform.NewRunner(".")
 
-	report, err := tfautomv.GenerateReport(".")
+	logln("Running \"terraform init\"...")
+	err := tf.Init()
 	if err != nil {
 		return err
 	}
 
+	logln("Running \"terraform plan\"...")
+	plan, err := tf.Plan()
+	if err != nil {
+		return err
+	}
+
+	logln("Analysing Terraform plan...")
+	analysis, err := tfautomv.AnalysisFromPlan(plan)
+	if err != nil {
+		return err
+	}
 	if *showAnalysis {
-		fmt.Fprint(os.Stderr, format.Analysis(report.Analysis))
+		fmt.Fprint(os.Stderr, format.Analysis(analysis))
 	}
 
-	err = terraform.AppendMovesToFile(report.Moves, "moves.tf")
+	logln("Determining valid moves...")
+	moves := tfautomv.MovesFromAnalysis(analysis)
+
+	logln("Adding moves to \"moves.tf\"...")
+	err = terraform.AppendMovesToFile(moves, "moves.tf")
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Generated %d moved blocks.", len(report.Moves))))
+	fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Generated %d moved blocks.", len(moves))))
 
 	return nil
+}
+
+func logln(msg string) {
+	fmt.Fprint(os.Stderr, format.Info(msg))
 }

@@ -1,15 +1,18 @@
-package tfautomv_test
+//go:build e2e
+
+package e2e_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv"
 )
 
-func TestDetermineMovedBlocks(t *testing.T) {
+func TestE2E(t *testing.T) {
 	tt := []struct {
 		name    string
 		workdir string
@@ -18,8 +21,7 @@ func TestDetermineMovedBlocks(t *testing.T) {
 			"attributes",
 			filepath.Join("./testdata", "/based-on-attributes"),
 		},
-		// This test fails.
-		// tfautomv cannot yet solve this case.
+		// This test fails. tfautomv cannot yet solve this case.
 		// {
 		// 	"dependencies",
 		// 	filepath.Join("./testdata", "/based-on-dependencies"),
@@ -35,23 +37,37 @@ func TestDetermineMovedBlocks(t *testing.T) {
 			setupWorkdir(t, tc.workdir)
 
 			workdir := filepath.Join(tc.workdir, "refactored-code")
-			report, err := tfautomv.GenerateReport(workdir)
+			tf := terraform.NewRunner(workdir)
+
+			err := tf.Init()
 			if err != nil {
-				t.Fatalf("GenerateReport(%q): %v", workdir, err)
+				t.Fatalf("terraform init: %v", err)
+			}
+			plan, err := tf.Plan()
+			if err != nil {
+				t.Fatalf("terraform plan: %v", err)
 			}
 
-			err = terraform.AppendMovesToFile(report.Moves, filepath.Join(workdir, "moves.tf"))
+			analysis, err := tfautomv.AnalysisFromPlan(plan)
+			if err != nil {
+				t.Fatalf("AnalysisFromPlan(): %v", err)
+			}
+
+			t.Log(format.Analysis(analysis))
+
+			moves := tfautomv.MovesFromAnalysis(analysis)
+
+			err = terraform.AppendMovesToFile(moves, filepath.Join(workdir, "moves.tf"))
 			if err != nil {
 				t.Fatalf("AppendMovesToFile(): %v", err)
 			}
 
-			tf := terraform.NewRunner(workdir)
-			plan, err := tf.Plan()
+			plan, err = tf.Plan()
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("terraform plan (after addings moves): %v", err)
 			}
 
-			changes := tfautomv.CountChanges(plan)
+			changes := plan.NumChanges()
 			if changes > 0 {
 				t.Errorf("%d changes remaining", changes)
 			}
