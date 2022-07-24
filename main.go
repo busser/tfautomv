@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	showAnalysis = flag.Bool("show-analysis", false, "show detailed analysis of Terraform plan")
+	dryRun       = flag.Bool("dry-run", false, "print moves instead of writing them to disk")
 	printVersion = flag.Bool("version", false, "print version and exit")
+	showAnalysis = flag.Bool("show-analysis", false, "show detailed analysis of Terraform plan")
 )
 
 func main() {
@@ -48,7 +49,6 @@ func run() error {
 		return err
 	}
 
-	logln("Analysing Terraform plan...")
 	analysis, err := tfautomv.AnalysisFromPlan(plan)
 	if err != nil {
 		return err
@@ -57,16 +57,19 @@ func run() error {
 		fmt.Fprint(os.Stderr, format.Analysis(analysis))
 	}
 
-	logln("Determining valid moves...")
 	moves := tfautomv.MovesFromAnalysis(analysis)
 
-	logln("Adding moves to \"moves.tf\"...")
+	if *dryRun {
+		fmt.Fprint(os.Stderr, format.Moves(moves))
+		return nil
+	}
+
 	err = terraform.AppendMovesToFile(moves, "moves.tf")
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Generated %d moved blocks.", len(moves))))
+	fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Added %d moved blocks to \"moves.tf\".", len(moves))))
 
 	return nil
 }

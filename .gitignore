@@ -10,4 +10,4 @@ bin/
 dist/
 
 # Test artifacts
-testdata/**/moves.tf
+internal/e2e/testdata/**/moves.tf
