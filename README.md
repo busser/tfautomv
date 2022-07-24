@@ -50,25 +50,7 @@ tfautomv
 In the background, `tfautomv` will run `terraform plan` and append `moved`
 blocks to a `moves.tf` file.
 
-This is what a usual workflow looks like:
-
-```text
-$ terraform plan
-...
-Plan: 19 to add, 0 to change, 19 to destroy.
-...
-
-$ tfautomv
-Analysing Terraform plan...
-╷
-│ Done: Generated 3 moved blocks.
-╵
-
-$ terraform plan
-...
-Plan: 0 to add, 0 to change, 0 to destroy.
-...
-```
+For a preview of the moves `tfautomv` found, use the `-dry-run` flag.
 
 For details on which resources match and which don't, use the `-show-analysis`
 flag. Output looks like this:
