@@ -30,3 +30,9 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+brews:
+- name: tfautomv
+  homepage: https://github.com/padok-team/tfautomv
+  tap:
+    owner: padok-team
+    name: tfautomv
