@@ -20,6 +20,9 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
+    files:
+      - README.md
+      - LICENSE
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -36,3 +39,11 @@ brews:
   tap:
     owner: padok-team
     name: tfautomv
+nfpms:
+  - maintainer: Arthur Busser <arthurb@padok.fr>
+    description: Tf Automove
+    homepage: https://github.com/padok-team/tfautomv
+    license: Apache 2.0
+    file_name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}'
+    formats:
+      - deb
