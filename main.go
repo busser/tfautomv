@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv"
@@ -13,6 +14,7 @@ import (
 
 var (
 	dryRun       = flag.Bool("dry-run", false, "print moves instead of writing them to disk")
+	outputFormat = flag.String("output", "blocks", "output format of moves (\"blocks\", \"commands\")")
 	printVersion = flag.Bool("version", false, "print version and exit")
 	showAnalysis = flag.Bool("show-analysis", false, "show detailed analysis of Terraform plan")
 )
@@ -37,8 +39,30 @@ func run() error {
 
 	tf := terraform.NewRunner(".")
 
+	// Some Terraform versions do not support some of tfautomv's output options.
+	// Check that everything is OK early on, to avoid wasting time running a
+	// plan for nothing.
+
+	tfVer, err := tf.Version()
+	if err != nil {
+		return err
+	}
+
+	switch *outputFormat {
+	case "blocks":
+		if tfVer.LessThan(semver.MustParse("1.1")) {
+			return fmt.Errorf("Terraform version %s does not support moved blocks", tfVer.String())
+		}
+	case "commands":
+	default:
+		return fmt.Errorf("unknown output format %q", *outputFormat)
+	}
+
+	// Terraform's plan contains a lot of information. For now, this is all we
+	// need. In the future, we may choose to use other sources of information.
+
 	logln("Running \"terraform init\"...")
-	err := tf.Init()
+	err = tf.Init()
 	if err != nil {
 		return err
 	}
@@ -58,18 +82,36 @@ func run() error {
 	}
 
 	moves := tfautomv.MovesFromAnalysis(analysis)
+	if len(moves) == 0 {
+		fmt.Fprint(os.Stderr, format.Done("Found no moves to make"))
+		return nil
+	}
+
+	// At this point, we need to output the moves we found. The Terraform
+	// community originally used `tf state mv` commands. Terraform 1.1+ supports
+	// moved blocks as a replacement, but those remain incomplete for now.
+	// Community tools like tfmigrate are also popular.
 
 	if *dryRun {
 		fmt.Fprint(os.Stderr, format.Moves(moves))
 		return nil
 	}
 
-	err = terraform.AppendMovesToFile(moves, "moves.tf")
-	if err != nil {
-		return err
-	}
+	switch *outputFormat {
+	case "blocks":
+		err = terraform.AppendMovesToFile(moves, "moves.tf")
+		if err != nil {
+			return err
+		}
+		fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Added %d moved blocks to \"moves.tf\".", len(moves))))
 
-	fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Added %d moved blocks to \"moves.tf\".", len(moves))))
+	case "commands":
+		terraform.WriteMovesShellCommands(moves, os.Stdout)
+		fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Wrote %d commands to standard output.", len(moves))))
+
+	default:
+		return fmt.Errorf("unknown output format %q", *outputFormat)
+	}
 
 	return nil
 }

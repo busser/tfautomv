@@ -1,9 +1,20 @@
-# Automatic Terraform `moved` blocks
+# Automatic Terraform `moved` blocks <!-- omit in toc -->
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Go Report Card](https://goreportcard.com/badge/github.com/padok-team/tfautomv)](https://goreportcard.com/report/github.com/padok-team/tfautomv)
+![tests-passing](https://github.com/padok-team/tfautomv/actions/workflows/ci.yml/badge.svg)
 
 When refactoring a Terraform codebase, you often need to write [`moved` blocks](https://www.terraform.io/language/modules/develop/refactoring#moved-block-syntax). This can be tedious. Let
 `tfautomv` do it for you.
+
+- [How does it work?](#how-does-it-work)
+- [Goals](#goals)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Detailed analysis](#detailed-analysis)
+  - [Output options](#output-options)
+- [Known issues](#known-issues)
+- [License](#license)
 
 ## How does it work?
 
@@ -47,15 +58,22 @@ In any directory where you would run `terraform plan`, simply run:
 tfautomv
 ```
 
-In the background, `tfautomv` will run `terraform plan` and append `moved`
-blocks to a `moves.tf` file.
+In the background, `tfautomv` will run `terraform init` and `terraform plan`.
 
-For a preview of the moves `tfautomv` found, use the `-dry-run` flag.
+### Detailed analysis
 
 For details on which resources match and which don't, use the `-show-analysis`
 flag. Output looks like this:
 
 ![analysis](docs/analysis.png)
+
+### Output options
+
+There are multiple output options supported, that you can enable with flags:
+
+- `-output=blocks` (default): appends `moved` blocks to a `moves.tf` file
+- `-output=commands`: prints `terraform state mv` commands to standard output
+- `-dry-run`: prints moves in human-readable format
 
 ## Known issues
 
