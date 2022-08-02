@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -26,4 +27,10 @@ func AppendMovesToFile(moves []Move, path string) error {
 	}
 
 	return nil
+}
+
+func WriteMovesShellCommands(moves []Move, w io.Writer) {
+	for _, m := range moves {
+		fmt.Fprintf(w, "terraform state mv %s %s\n", m.From, m.To)
+	}
 }

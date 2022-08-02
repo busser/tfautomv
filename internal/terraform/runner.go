@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 type runner struct {
@@ -55,6 +57,20 @@ func (r *runner) Apply() error {
 	return r.runCommand([]string{"apply", "-auto-approve"}, nil)
 }
 
+func (r *runner) Version() (*semver.Version, error) {
+	var jsonVersion bytes.Buffer
+	if err := r.runCommand([]string{"version", "-json"}, &jsonVersion); err != nil {
+		return nil, err
+	}
+
+	var version Version
+	if err := json.Unmarshal(jsonVersion.Bytes(), &version); err != nil {
+		return nil, fmt.Errorf("could not parse version: %w", err)
+	}
+
+	return semver.NewVersion(version.TerraformVersion)
+}
+
 func (r *runner) runCommand(args []string, out io.Writer) error {
 	cmd := exec.Command("terraform", args...)
 
@@ -68,10 +84,6 @@ func (r *runner) runCommand(args []string, out io.Writer) error {
 
 	if err := cmd.Run(); err != nil {
 		return Error{cmd, &buf, err}
-	}
-
-	if exitCode := cmd.ProcessState.ExitCode(); exitCode != 0 {
-		return Error{cmd, &buf, fmt.Errorf("exit code %d", exitCode)}
 	}
 
 	return nil
