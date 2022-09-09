@@ -42,7 +42,10 @@ This project's goals are, in order:
 
 ## Installation
 
-Compile `tfautomv` from source:
+Go to the [Releases page](https://github.com/padok-team/tfautomv/releases),
+download the binary that matches your workstation, and add it to your PATH.
+
+Alternatively, you can compile `tfautomv` from source:
 
 ```bash
 make build
