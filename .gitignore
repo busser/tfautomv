@@ -11,3 +11,6 @@ dist/
 
 # Test artifacts
 internal/e2e/testdata/**/moves.tf
+
+# Envrc
+.envrc
