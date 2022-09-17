@@ -12,5 +12,5 @@ dist/
 # Test artifacts
 internal/e2e/testdata/**/moves.tf
 
-# Envrc
+# Local direnv configuration
 .envrc
