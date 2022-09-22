@@ -31,8 +31,14 @@ changelog:
       - '^docs:'
       - '^test:'
 brews:
-- name: tfautomv
-  homepage: https://github.com/padok-team/tfautomv
-  tap:
-    owner: padok-team
-    name: homebrew-tap
+  - name: tfautomv
+    homepage: https://github.com/padok-team/tfautomv
+    description: Generate Terraform moved blocks automatically for painless refactoring
+    license: Apache-2.0
+    tap:
+      owner: padok-team
+      name: homebrew-tap
+    install: |
+      bin.install "tfautomv"
+    test: |
+      system "#{bin}/tfautomv -version"
