@@ -42,16 +42,21 @@ This project's goals are, in order:
 
 ## Installation
 
-Go to the [Releases page](https://github.com/padok-team/tfautomv/releases),
-download the binary that matches your workstation, and add it to your PATH.
+With Homebrew:
 
-Alternatively, you can compile `tfautomv` from source:
+```bash
+brew tap padok-team/tap
+brew install tfautomv
+```
+
+Pre-compiled binaries are available on the [Releases page](https://github.com/padok-team/tfautomv/releases). You can download the binary that matches your workstation
+and add it to your PATH.
+
+You can also compile `tfautomv` from source. You must have [Go installed](https://go.dev/doc/install). This command writes a fresh binary to `bin/tfautomv`:
 
 ```bash
 make build
 ```
-
-And then put `bin/tfautomv` into your system's PATH.
 
 ## Usage
 
