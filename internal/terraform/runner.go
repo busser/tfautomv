@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -13,8 +12,7 @@ import (
 )
 
 type runner struct {
-	workdir   string
-	stateFile string
+	workdir string
 }
 
 func NewRunner(workdir string) *runner {
@@ -30,7 +28,7 @@ func (r *runner) Init() error {
 }
 
 func (r *runner) Plan() (*Plan, error) {
-	planFile, err := ioutil.TempFile("", "tfautomv.*.plan")
+	planFile, err := os.CreateTemp("", "tfautomv.*.plan")
 	if err != nil {
 		return nil, err
 	}
