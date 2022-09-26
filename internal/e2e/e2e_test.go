@@ -14,26 +14,33 @@ import (
 
 func TestE2E(t *testing.T) {
 	tt := []struct {
-		name    string
-		workdir string
+		name       string
+		workdir    string
+		skip       bool
+		skipReason string
 	}{
 		{
-			"attributes",
-			filepath.Join("./testdata", "/based-on-attributes"),
+			name:    "attributes",
+			workdir: filepath.Join("./testdata", "/based-on-attributes"),
 		},
-		// This test fails. tfautomv cannot yet solve this case.
-		// {
-		// 	"dependencies",
-		// 	filepath.Join("./testdata", "/based-on-dependencies"),
-		// },
 		{
-			"type",
-			filepath.Join("./testdata", "/based-on-type"),
+			name:       "dependencies",
+			workdir:    filepath.Join("./testdata", "/based-on-dependencies"),
+			skip:       true,
+			skipReason: "tfautomv cannot yet solve this case",
+		},
+		{
+			name:    "type",
+			workdir: filepath.Join("./testdata", "/based-on-type"),
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.skip {
+				t.Skip(tc.skipReason)
+			}
+
 			setupWorkdir(t, tc.workdir)
 
 			workdir := filepath.Join(tc.workdir, "refactored-code")

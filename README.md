@@ -87,7 +87,7 @@ There are multiple output options supported, that you can enable with flags:
 
 Some configurations make it so that `tfautomv` cannot be certain about which
 resource matches which. For more information, see the failing
-`TestDetermineMovedBlocks/dependencies` test in the `internal/tfautomv` package.
+`TestE2E/dependencies` test in the `internal/e2e` package.
 
 ## License
 
