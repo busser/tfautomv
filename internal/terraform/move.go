@@ -34,3 +34,20 @@ func WriteMovesShellCommands(moves []Move, w io.Writer) {
 		fmt.Fprintf(w, "terraform state mv %s %s\n", m.From, m.To)
 	}
 }
+
+type InOrder []Move
+
+func (mm InOrder) Len() int {
+	return len(mm)
+}
+
+func (mm InOrder) Less(i, j int) bool {
+	if mm[i].From != mm[j].From {
+		return mm[i].From < mm[j].From
+	}
+	return mm[i].To > mm[j].To
+}
+
+func (mm InOrder) Swap(i, j int) {
+	mm[i], mm[j] = mm[j], mm[i]
+}

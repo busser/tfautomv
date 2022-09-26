@@ -1,6 +1,10 @@
 package tfautomv
 
-import "github.com/padok-team/tfautomv/internal/terraform"
+import (
+	"sort"
+
+	"github.com/padok-team/tfautomv/internal/terraform"
+)
 
 // MovesFromAnalysis identifies which resources should be moved from one
 // address to the other in Terraform's state, based on the provided analysis.
@@ -45,6 +49,8 @@ func MovesFromAnalysis(analysis *Analysis) []terraform.Move {
 			moves = append(moves, m)
 		}
 	}
+
+	sort.Sort(terraform.InOrder(moves))
 
 	return moves
 }
