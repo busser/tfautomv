@@ -51,7 +51,7 @@ func run() error {
 	switch *outputFormat {
 	case "blocks":
 		if tfVer.LessThan(semver.MustParse("1.1")) {
-			return fmt.Errorf("Terraform version %s does not support moved blocks", tfVer.String())
+			return fmt.Errorf("terraform version %s does not support moved blocks", tfVer.String())
 		}
 	case "commands":
 	default:
