@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv"
@@ -14,24 +16,40 @@ import (
 
 func TestE2E(t *testing.T) {
 	tt := []struct {
-		name       string
-		workdir    string
+		name        string
+		workdir     string
+		want        []terraform.Move
+		wantChanges int
+
 		skip       bool
 		skipReason string
 	}{
 		{
 			name:    "attributes",
 			workdir: filepath.Join("./testdata", "/based-on-attributes"),
+			want: []terraform.Move{
+				{From: "random_pet.original_first", To: "random_pet.refactored_first"},
+				{From: "random_pet.original_second", To: "random_pet.refactored_second"},
+				{From: "random_pet.original_third", To: "random_pet.refactored_third"},
+			},
 		},
 		{
-			name:       "dependencies",
-			workdir:    filepath.Join("./testdata", "/based-on-dependencies"),
+			name:    "dependencies",
+			workdir: filepath.Join("./testdata", "/based-on-dependencies"),
+			want: []terraform.Move{
+				{From: "random_integer.first", To: "random_integer.alpha"},
+				{From: "random_integer.second", To: "random_integer.beta"},
+			},
 			skip:       true,
 			skipReason: "tfautomv cannot yet solve this case",
 		},
 		{
 			name:    "type",
 			workdir: filepath.Join("./testdata", "/based-on-type"),
+			want: []terraform.Move{
+				{From: "random_id.original", To: "random_id.refactored"},
+				{From: "random_pet.original", To: "random_pet.refactored"},
+			},
 		},
 	}
 
@@ -60,9 +78,13 @@ func TestE2E(t *testing.T) {
 				t.Fatalf("AnalysisFromPlan(): %v", err)
 			}
 
-			t.Log(format.Analysis(analysis))
+			t.Logf("\n%s", format.Analysis(analysis))
 
 			moves := tfautomv.MovesFromAnalysis(analysis)
+
+			if diff := cmp.Diff(tc.want, moves); diff != "" {
+				t.Errorf("Moves mismatch (-want +got):\n%s", diff)
+			}
 
 			err = terraform.AppendMovesToFile(moves, filepath.Join(workdir, "moves.tf"))
 			if err != nil {
@@ -75,8 +97,8 @@ func TestE2E(t *testing.T) {
 			}
 
 			changes := plan.NumChanges()
-			if changes > 0 {
-				t.Errorf("%d changes remaining", changes)
+			if changes != tc.wantChanges {
+				t.Errorf("%d changes remaining, want %d", changes, tc.wantChanges)
 			}
 		})
 	}
