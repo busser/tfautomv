@@ -4,6 +4,7 @@ import (
 	"github.com/padok-team/tfautomv/internal/flatmap"
 	"github.com/padok-team/tfautomv/internal/slices"
 	"github.com/padok-team/tfautomv/internal/terraform"
+	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
 )
 
 // Analysis of resources planned for creation or destruction by Terraform and
@@ -33,7 +34,9 @@ type Resource struct {
 
 // AnalysisFromPlan reads the contents of plan and compares resources planned
 // for creation with resources planned for destruction of the same type.
-func AnalysisFromPlan(plan *terraform.Plan) (*Analysis, error) {
+// Resources may match, depending on their attributes' values and the rules
+// passed to AnalysisFromPlan.
+func AnalysisFromPlan(plan *terraform.Plan, rules []ignore.Rule) (*Analysis, error) {
 
 	// We start with some preprocessing. We identify all ressources planned for
 	// creation, or deletion, or both and ignore the rest. We flatten each of
@@ -97,7 +100,7 @@ func AnalysisFromPlan(plan *terraform.Plan) (*Analysis, error) {
 					continue
 				}
 
-				comp := Compare(created, destroyed)
+				comp := Compare(created, destroyed, rules)
 				comparisons[created] = append(comparisons[created], comp)
 				comparisons[destroyed] = append(comparisons[destroyed], comp)
 			}

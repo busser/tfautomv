@@ -12,12 +12,15 @@ import (
 	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv"
+	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
 )
 
 func TestE2E(t *testing.T) {
 	tt := []struct {
-		name        string
-		workdir     string
+		name    string
+		workdir string
+		rules   []ignore.Rule
+
 		want        []terraform.Move
 		wantChanges int
 
@@ -51,6 +54,23 @@ func TestE2E(t *testing.T) {
 				{From: "random_pet.original", To: "random_pet.refactored"},
 			},
 		},
+		{
+			name:        "different attributes",
+			workdir:     filepath.Join("testdata", "different-attributes"),
+			want:        nil,
+			wantChanges: 2,
+		},
+		{
+			name:    "ignore different attributes",
+			workdir: filepath.Join("testdata", "different-attributes"),
+			rules: []ignore.Rule{
+				ignore.MustParseRule("everything:random_pet:length"),
+			},
+			want: []terraform.Move{
+				{From: "random_pet.original", To: "random_pet.refactored"},
+			},
+			wantChanges: 1,
+		},
 	}
 
 	for _, tc := range tt {
@@ -73,7 +93,7 @@ func TestE2E(t *testing.T) {
 				t.Fatalf("terraform plan: %v", err)
 			}
 
-			analysis, err := tfautomv.AnalysisFromPlan(plan)
+			analysis, err := tfautomv.AnalysisFromPlan(plan, tc.rules)
 			if err != nil {
 				t.Fatalf("AnalysisFromPlan(): %v", err)
 			}

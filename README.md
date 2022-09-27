@@ -11,6 +11,7 @@ When refactoring a Terraform codebase, you often need to write [`moved` blocks](
 - [Goals](#goals)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Ignore certain differences](#ignore-certain-differences)
   - [Detailed analysis](#detailed-analysis)
   - [Output options](#output-options)
 - [Known issues](#known-issues)
@@ -68,9 +69,41 @@ tfautomv
 
 In the background, `tfautomv` will run `terraform init` and `terraform plan`.
 
+### Ignore certain differences
+
+The `--ignore` flag allows you to ignore differences between certain resources'
+attributes.
+
+Rules have the following syntax:
+
+```plaintext
+<EFFECT>:<RESOURCE TYPE>:<ATTRIBUTE NAME>
+```
+
+For example:
+
+```bash
+tfautomv --ignore=everything:random_pet:length
+```
+
+For nested attributes, separate parent attributes from child attributes with a
+`.` (the representation used in tfautomv's detailed analysis):
+
+```bash
+<EFFECT>:<RESOURCE TYPE>:parent_obj.child_field
+<EFFECT>:<RESOURCE TYPE>:parent_list.0
+```
+
+You can use the `--ignore` flag multiple times to specify multiple rules.
+
+The following effects are available:
+
+- `everything`: ignores all differences between attribute values
+- `whitespace`: ignores whitespace when comparing attribute values
+
 ### Detailed analysis
 
-For details on which resources match and which don't, use the `-show-analysis`
+For details on which resources match and which don't, use the `--show-analysis`
 flag. Output looks like this:
 
 ![analysis](docs/analysis.png)
@@ -79,9 +112,9 @@ flag. Output looks like this:
 
 There are multiple output options supported, that you can enable with flags:
 
-- `-output=blocks` (default): appends `moved` blocks to a `moves.tf` file
-- `-output=commands`: prints `terraform state mv` commands to standard output
-- `-dry-run`: prints moves in human-readable format
+- `--output=blocks` (default): appends `moved` blocks to a `moves.tf` file
+- `--output=commands`: prints `terraform state mv` commands to standard output
+- `--dry-run`: prints moves in human-readable format
 
 ## Known issues
 
