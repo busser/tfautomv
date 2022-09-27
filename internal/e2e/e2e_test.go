@@ -25,8 +25,8 @@ func TestE2E(t *testing.T) {
 		skipReason string
 	}{
 		{
-			name:    "attributes",
-			workdir: filepath.Join("./testdata", "/based-on-attributes"),
+			name:    "same attributes",
+			workdir: filepath.Join("testdata", "same-attributes"),
 			want: []terraform.Move{
 				{From: "random_pet.original_first", To: "random_pet.refactored_first"},
 				{From: "random_pet.original_second", To: "random_pet.refactored_second"},
@@ -34,8 +34,8 @@ func TestE2E(t *testing.T) {
 			},
 		},
 		{
-			name:    "dependencies",
-			workdir: filepath.Join("./testdata", "/based-on-dependencies"),
+			name:    "requires dependency analysis",
+			workdir: filepath.Join("testdata", "requires-dependency-analysis"),
 			want: []terraform.Move{
 				{From: "random_integer.first", To: "random_integer.alpha"},
 				{From: "random_integer.second", To: "random_integer.beta"},
@@ -44,8 +44,8 @@ func TestE2E(t *testing.T) {
 			skipReason: "tfautomv cannot yet solve this case",
 		},
 		{
-			name:    "type",
-			workdir: filepath.Join("./testdata", "/based-on-type"),
+			name:    "same type",
+			workdir: filepath.Join("testdata", "same-type"),
 			want: []terraform.Move{
 				{From: "random_id.original", To: "random_id.refactored"},
 				{From: "random_pet.original", To: "random_pet.refactored"},
