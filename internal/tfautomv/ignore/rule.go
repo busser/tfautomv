@@ -19,7 +19,11 @@ const (
 	RuleTypeWhitespace RuleType = "whitespace"
 )
 
+// A Rule allows tfautomv to equate certains attribute values that would
+// normally be considered different.
 type Rule interface {
+	// Each rule has a unique string representation. This representation is how
+	// users provides rules to tfautomv.
 	fmt.Stringer
 
 	// AppliesTo returns wether the Rule applies to the given resource type and
