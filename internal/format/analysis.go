@@ -32,6 +32,15 @@ func Analysis(analysis *tfautomv.Analysis) string {
 					resourceBuf.WriteString(colorstring.Color("[bold][green]Match: "))
 					resourceBuf.WriteString(comp.Destroyed.Address)
 					resourceBuf.WriteByte('\n')
+
+					var diffBuf bytes.Buffer
+					for _, attr := range comp.IgnoredAttributes {
+						diffBuf.WriteString(colorstring.Color(fmt.Sprintf("[yellow]~ [reset]%s (some differences are ignored)", attr)))
+						diffBuf.WriteByte('\n')
+					}
+					if diffBuf.Len() > 0 {
+						resourceBuf.WriteString(WithLeftRule(&diffBuf, "green"))
+					}
 				}
 			}
 

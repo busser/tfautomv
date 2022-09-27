@@ -120,7 +120,7 @@ func TestAnalysisFromPlan(t *testing.T) {
 	for _, tc := range tt {
 		plan := dummyPlan(t, tc.createdResources, tc.destroyedResources)
 
-		actual, err := AnalysisFromPlan(plan)
+		actual, err := AnalysisFromPlan(plan, nil)
 		if err != nil {
 			t.Fatalf("AnalysisFromPlan(): unexpected error: %v", err)
 		}

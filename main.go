@@ -2,7 +2,6 @@ package main
 
 import (
 	_ "embed"
-	"flag"
 	"fmt"
 	"os"
 
@@ -10,10 +9,13 @@ import (
 	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv"
+	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
+	flag "github.com/spf13/pflag"
 )
 
 var (
 	dryRun       = flag.Bool("dry-run", false, "print moves instead of writing them to disk")
+	ignoreRules  = flag.StringArray("ignore", nil, "rules for ignoring certain differences")
 	outputFormat = flag.String("output", "blocks", "output format of moves (\"blocks\", \"commands\")")
 	printVersion = flag.Bool("version", false, "print version and exit")
 	showAnalysis = flag.Bool("show-analysis", false, "show detailed analysis of Terraform plan")
@@ -58,6 +60,17 @@ func run() error {
 		return fmt.Errorf("unknown output format %q", *outputFormat)
 	}
 
+	// Parse rules early on so that the user gets quick feedback in case of
+	// syntax errors.
+	var rules []ignore.Rule
+	for _, raw := range *ignoreRules {
+		r, err := ignore.ParseRule(raw)
+		if err != nil {
+			return fmt.Errorf("invalid rule passed with -ignore flag %q: %w", raw, err)
+		}
+		rules = append(rules, r)
+	}
+
 	// Terraform's plan contains a lot of information. For now, this is all we
 	// need. In the future, we may choose to use other sources of information.
 
@@ -73,7 +86,7 @@ func run() error {
 		return err
 	}
 
-	analysis, err := tfautomv.AnalysisFromPlan(plan)
+	analysis, err := tfautomv.AnalysisFromPlan(plan, rules)
 	if err != nil {
 		return err
 	}
