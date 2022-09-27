@@ -4,74 +4,57 @@ package e2e_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-
-	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
-	"github.com/padok-team/tfautomv/internal/tfautomv"
-	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
 )
 
 func TestE2E(t *testing.T) {
 	tt := []struct {
 		name    string
 		workdir string
-		rules   []ignore.Rule
+		args    []string
 
-		want        []terraform.Move
 		wantChanges int
 
 		skip       bool
 		skipReason string
 	}{
 		{
-			name:    "same attributes",
-			workdir: filepath.Join("testdata", "same-attributes"),
-			want: []terraform.Move{
-				{From: "random_pet.original_first", To: "random_pet.refactored_first"},
-				{From: "random_pet.original_second", To: "random_pet.refactored_second"},
-				{From: "random_pet.original_third", To: "random_pet.refactored_third"},
-			},
+			name:        "same attributes",
+			workdir:     filepath.Join("testdata", "same-attributes"),
+			wantChanges: 0,
 		},
 		{
-			name:    "requires dependency analysis",
-			workdir: filepath.Join("testdata", "requires-dependency-analysis"),
-			want: []terraform.Move{
-				{From: "random_integer.first", To: "random_integer.alpha"},
-				{From: "random_integer.second", To: "random_integer.beta"},
-			},
-			skip:       true,
-			skipReason: "tfautomv cannot yet solve this case",
+			name:        "requires dependency analysis",
+			workdir:     filepath.Join("testdata", "requires-dependency-analysis"),
+			wantChanges: 0,
+			skip:        true,
+			skipReason:  "tfautomv cannot yet solve this case",
 		},
 		{
-			name:    "same type",
-			workdir: filepath.Join("testdata", "same-type"),
-			want: []terraform.Move{
-				{From: "random_id.original", To: "random_id.refactored"},
-				{From: "random_pet.original", To: "random_pet.refactored"},
-			},
+			name:        "same type",
+			workdir:     filepath.Join("testdata", "same-type"),
+			wantChanges: 0,
 		},
 		{
 			name:        "different attributes",
 			workdir:     filepath.Join("testdata", "different-attributes"),
-			want:        nil,
 			wantChanges: 2,
 		},
 		{
 			name:    "ignore different attributes",
 			workdir: filepath.Join("testdata", "different-attributes"),
-			rules: []ignore.Rule{
-				ignore.MustParseRule("everything:random_pet:length"),
-			},
-			want: []terraform.Move{
-				{From: "random_pet.original", To: "random_pet.refactored"},
+			args: []string{
+				"--ignore=everything:random_pet:length",
 			},
 			wantChanges: 1,
 		},
 	}
+
+	binPath := buildBinary(t)
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
@@ -82,36 +65,17 @@ func TestE2E(t *testing.T) {
 			setupWorkdir(t, tc.workdir)
 
 			workdir := filepath.Join(tc.workdir, "refactored-code")
-			tf := terraform.NewRunner(workdir)
 
-			err := tf.Init()
-			if err != nil {
-				t.Fatalf("terraform init: %v", err)
-			}
-			plan, err := tf.Plan()
-			if err != nil {
-				t.Fatalf("terraform plan: %v", err)
-			}
+			tfautomvCmd := exec.Command(binPath, tc.args...)
+			tfautomvCmd.Dir = workdir
+			tfautomvCmd.Stdout = os.Stderr
+			tfautomvCmd.Stderr = os.Stderr
 
-			analysis, err := tfautomv.AnalysisFromPlan(plan, tc.rules)
-			if err != nil {
-				t.Fatalf("AnalysisFromPlan(): %v", err)
+			if err := tfautomvCmd.Run(); err != nil {
+				t.Fatalf("running tfautomv: %v", err)
 			}
 
-			t.Logf("\n%s", format.Analysis(analysis))
-
-			moves := tfautomv.MovesFromAnalysis(analysis)
-
-			if diff := cmp.Diff(tc.want, moves); diff != "" {
-				t.Errorf("Moves mismatch (-want +got):\n%s", diff)
-			}
-
-			err = terraform.AppendMovesToFile(moves, filepath.Join(workdir, "moves.tf"))
-			if err != nil {
-				t.Fatalf("AppendMovesToFile(): %v", err)
-			}
-
-			plan, err = tf.Plan()
+			plan, err := terraform.NewRunner(workdir).Plan()
 			if err != nil {
 				t.Fatalf("terraform plan (after addings moves): %v", err)
 			}
@@ -122,6 +86,28 @@ func TestE2E(t *testing.T) {
 			}
 		})
 	}
+}
+
+func buildBinary(t *testing.T) string {
+	t.Helper()
+
+	rootDir, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatalf("could not get root directory: %v", err)
+	}
+
+	buildCmd := exec.Command("make", "build")
+	buildCmd.Dir = rootDir
+	buildCmd.Stdout = os.Stderr
+	buildCmd.Stderr = os.Stderr
+
+	t.Log("Building tfautomv binary...")
+	if err := buildCmd.Run(); err != nil {
+		t.Fatalf("make build: %v", err)
+	}
+
+	binPath := filepath.Join(rootDir, "bin", "tfautomv")
+	return binPath
 }
 
 func setupWorkdir(t *testing.T, workdir string) {
