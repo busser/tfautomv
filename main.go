@@ -66,7 +66,7 @@ func run() error {
 	for _, raw := range *ignoreRules {
 		r, err := ignore.ParseRule(raw)
 		if err != nil {
-			return fmt.Errorf("invalid rule passed with -ignore flag %q: %w", raw, err)
+			return fmt.Errorf("invalid rule passed with --ignore flag %q: %w", raw, err)
 		}
 		rules = append(rules, r)
 	}
