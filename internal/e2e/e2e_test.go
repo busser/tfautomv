@@ -52,6 +52,13 @@ func TestE2E(t *testing.T) {
 			},
 			wantChanges: 1,
 		},
+		{
+			name:        "terraform cloud",
+			workdir:     filepath.Join("testdata", "terraform-cloud"),
+			wantChanges: 0,
+			skip:        true,
+			skipReason:  "tfautomv is currently incompatible with Terraform Cloud workspaces with the \"Remote\" execution mode.\nFor more details, see https://github.com/padok-team/tfautomv/issues/17",
+		},
 	}
 
 	binPath := buildBinary(t)
