@@ -9,7 +9,13 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-func WithLeftRule(r io.Reader, lineColor string) string {
+func withLeftRule(r io.Reader, lineColor string) string {
+
+	c := colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: NoColor,
+	}
 
 	// these leftRule* variables are markers for the beginning of the lines
 	// containing the error that are intended to help sighted users
@@ -21,9 +27,9 @@ func WithLeftRule(r io.Reader, lineColor string) string {
 	// error) that some readers have trouble easily identifying which
 	// text belongs to the error and which does not.
 	var (
-		leftRuleStart = colorstring.Color(fmt.Sprintf("[%s]╷ [reset]", lineColor))
-		leftRuleLine  = colorstring.Color(fmt.Sprintf("[%s]│ [reset]", lineColor))
-		leftRuleEnd   = colorstring.Color(fmt.Sprintf("[%s]╵ [reset]", lineColor))
+		leftRuleStart = c.Color(fmt.Sprintf("[%s]╷[reset]", lineColor))
+		leftRuleLine  = c.Color(fmt.Sprintf("[%s]│[reset]", lineColor))
+		leftRuleEnd   = c.Color(fmt.Sprintf("[%s]╵[reset]", lineColor))
 	)
 
 	// We add the left rule prefixes to each line so that the overall message is
@@ -35,14 +41,11 @@ func WithLeftRule(r io.Reader, lineColor string) string {
 	sb.WriteByte('\n')
 	for sc.Scan() {
 		line := sc.Text()
-		prefix := leftRuleLine
-		if line == "" {
-			// Don't print the space after the line if there would be nothing
-			// after it anyway.
-			prefix = strings.TrimSpace(prefix)
+		sb.WriteString(leftRuleLine)
+		if line != "" {
+			sb.WriteByte(' ')
+			sb.WriteString(line)
 		}
-		sb.WriteString(prefix)
-		sb.WriteString(line)
 		sb.WriteByte('\n')
 	}
 	sb.WriteString(leftRuleEnd)

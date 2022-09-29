@@ -7,10 +7,17 @@ import (
 )
 
 func Done(msg string) string {
+
+	c := colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: NoColor,
+	}
+
 	var buf bytes.Buffer
 
-	buf.WriteString(colorstring.Color("[bold][green]Done: "))
+	buf.WriteString(c.Color("[bold][green]Done: "))
 	buf.WriteString(msg)
 
-	return WithLeftRule(&buf, "green")
+	return withLeftRule(&buf, "green")
 }

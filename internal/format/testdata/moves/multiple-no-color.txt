@@ -1,0 +1,11 @@
+╷
+│ Moves
+│ ╷
+│ │ From: random_id.original
+│ │ To:   random_id.refactored
+│ ╵
+│ ╷
+│ │ From: random_pet.original
+│ │ To:   random_pet.refactored
+│ ╵
+╵

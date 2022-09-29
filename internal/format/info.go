@@ -7,5 +7,12 @@ import (
 )
 
 func Info(msg string) string {
-	return colorstring.Color(fmt.Sprintf("[bold]%s\n", msg))
+
+	c := colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: NoColor,
+	}
+
+	return c.Color(fmt.Sprintf("[bold]%s\n", msg))
 }

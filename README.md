@@ -13,7 +13,8 @@ When refactoring a Terraform codebase, you often need to write [`moved` blocks](
 - [Usage](#usage)
   - [Ignore certain differences](#ignore-certain-differences)
   - [Detailed analysis](#detailed-analysis)
-  - [Output options](#output-options)
+  - [Output format](#output-format)
+  - [Disabling color](#disabling-color)
 - [Known issues](#known-issues)
 - [License](#license)
 
@@ -108,13 +109,18 @@ flag. Output looks like this:
 
 ![analysis](docs/analysis.png)
 
-### Output options
+### Output format
 
 There are multiple output options supported, that you can enable with flags:
 
 - `--output=blocks` (default): appends `moved` blocks to a `moves.tf` file
 - `--output=commands`: prints `terraform state mv` commands to standard output
 - `--dry-run`: prints moves in human-readable format
+
+### Disabling color
+
+You can disable output formatting, including colors, bold text, etc. with the
+`--no-color` flag.
 
 ## Known issues
 

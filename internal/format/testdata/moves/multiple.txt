@@ -1,0 +1,11 @@
+[32m╷[0m[0m
+[32m│[0m[0m [1m[32mMoves[0m
+[32m│[0m[0m [97m╷[0m[0m
+[32m│[0m[0m [97m│[0m[0m [1mFrom: [0mrandom_id.original
+[32m│[0m[0m [97m│[0m[0m [1mTo:   [0mrandom_id.refactored
+[32m│[0m[0m [97m╵[0m[0m
+[32m│[0m[0m [97m╷[0m[0m
+[32m│[0m[0m [97m│[0m[0m [1mFrom: [0mrandom_pet.original
+[32m│[0m[0m [97m│[0m[0m [1mTo:   [0mrandom_pet.refactored
+[32m│[0m[0m [97m╵[0m[0m
+[32m╵[0m[0m
