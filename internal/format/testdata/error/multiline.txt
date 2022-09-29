@@ -1,0 +1,7 @@
+[31m╷[0m[0m
+[31m│[0m[0m [1m[31mError: [0m
+[31m│[0m[0m
+[31m│[0m[0m [0mmultiple errors:
+[31m│[0m[0m   - first error
+[31m│[0m[0m   - second error
+[31m╵[0m[0m

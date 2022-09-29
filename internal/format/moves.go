@@ -8,24 +8,31 @@ import (
 )
 
 func Moves(moves []terraform.Move) string {
+
+	c := colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: NoColor,
+	}
+
 	var buf bytes.Buffer
 
-	buf.WriteString(colorstring.Color("[bold][green]Moves"))
+	buf.WriteString(c.Color("[bold][green]Moves"))
 	buf.WriteByte('\n')
 
 	for _, move := range moves {
 		var moveBuf bytes.Buffer
 
-		moveBuf.WriteString(colorstring.Color("[bold]From: "))
+		moveBuf.WriteString(c.Color("[bold]From: "))
 		moveBuf.WriteString(move.From)
 		moveBuf.WriteByte('\n')
 
-		moveBuf.WriteString(colorstring.Color("[bold]To:   "))
+		moveBuf.WriteString(c.Color("[bold]To:   "))
 		moveBuf.WriteString(move.To)
 		moveBuf.WriteByte('\n')
 
-		buf.WriteString(WithLeftRule(&moveBuf, "white"))
+		buf.WriteString(withLeftRule(&moveBuf, "white"))
 	}
 
-	return WithLeftRule(&buf, "green")
+	return withLeftRule(&buf, "green")
 }

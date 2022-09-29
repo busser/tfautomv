@@ -9,9 +9,16 @@ import (
 )
 
 func Analysis(analysis *tfautomv.Analysis) string {
+
+	c := colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Reset:   true,
+		Disable: NoColor,
+	}
+
 	var analysisBuf bytes.Buffer
 
-	analysisBuf.WriteString(colorstring.Color("[bold][cyan]Analysis"))
+	analysisBuf.WriteString(c.Color("[bold][cyan]Analysis"))
 	analysisBuf.WriteByte('\n')
 
 	for _, createdResources := range analysis.CreatedByType {
@@ -20,7 +27,7 @@ func Analysis(analysis *tfautomv.Analysis) string {
 			// Display the resource planned for creation.
 
 			analysisBuf.WriteByte('\n')
-			analysisBuf.WriteString(colorstring.Color(fmt.Sprintf("[bold]%s[reset]", created.Address)))
+			analysisBuf.WriteString(c.Color(fmt.Sprintf("[bold]%s[reset]", created.Address)))
 			analysisBuf.WriteByte('\n')
 
 			var resourceBuf bytes.Buffer
@@ -29,17 +36,17 @@ func Analysis(analysis *tfautomv.Analysis) string {
 
 			for _, comp := range analysis.Comparisons[created] {
 				if comp.IsMatch() {
-					resourceBuf.WriteString(colorstring.Color("[bold][green]Match: "))
+					resourceBuf.WriteString(c.Color("[bold][green]Match: "))
 					resourceBuf.WriteString(comp.Destroyed.Address)
 					resourceBuf.WriteByte('\n')
 
 					var diffBuf bytes.Buffer
 					for _, attr := range comp.IgnoredAttributes {
-						diffBuf.WriteString(colorstring.Color(fmt.Sprintf("[yellow]~ [reset]%s (some differences are ignored)", attr)))
+						diffBuf.WriteString(c.Color(fmt.Sprintf("[yellow]~ [reset]%s (some differences are ignored)", attr)))
 						diffBuf.WriteByte('\n')
 					}
 					if diffBuf.Len() > 0 {
-						resourceBuf.WriteString(WithLeftRule(&diffBuf, "green"))
+						resourceBuf.WriteString(withLeftRule(&diffBuf, "green"))
 					}
 				}
 			}
@@ -53,21 +60,21 @@ func Analysis(analysis *tfautomv.Analysis) string {
 					continue
 				}
 
-				resourceBuf.WriteString(colorstring.Color("[bold][red]Mismatch: "))
+				resourceBuf.WriteString(c.Color("[bold][red]Mismatch: "))
 				resourceBuf.WriteString(comp.Destroyed.Address)
 				resourceBuf.WriteByte('\n')
 
 				var diffBuf bytes.Buffer
 				for _, attr := range comp.MismatchingAttributes {
-					diffBuf.WriteString(colorstring.Color(fmt.Sprintf("[green]+ [reset]%s = %#v", attr, created.Attributes[attr])))
+					diffBuf.WriteString(c.Color(fmt.Sprintf("[green]+ [reset]%s = %#v", attr, created.Attributes[attr])))
 					diffBuf.WriteByte('\n')
-					diffBuf.WriteString(colorstring.Color(fmt.Sprintf("[red]- [reset]%s = %#v", attr, comp.Destroyed.Attributes[attr])))
+					diffBuf.WriteString(c.Color(fmt.Sprintf("[red]- [reset]%s = %#v", attr, comp.Destroyed.Attributes[attr])))
 					diffBuf.WriteByte('\n')
 				}
-				resourceBuf.WriteString(WithLeftRule(&diffBuf, "red"))
+				resourceBuf.WriteString(withLeftRule(&diffBuf, "red"))
 			}
 
-			analysisBuf.WriteString(WithLeftRule(&resourceBuf, "white"))
+			analysisBuf.WriteString(withLeftRule(&resourceBuf, "white"))
 		}
 	}
 
@@ -75,5 +82,5 @@ func Analysis(analysis *tfautomv.Analysis) string {
 		analysisBuf.WriteString("\nNo resources are planned for creation.")
 	}
 
-	return WithLeftRule(&analysisBuf, "cyan")
+	return withLeftRule(&analysisBuf, "cyan")
 }

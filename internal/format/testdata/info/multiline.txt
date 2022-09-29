@@ -1,0 +1,4 @@
+[1mmultiple messages:
+  - first message
+  - second message
+[0m

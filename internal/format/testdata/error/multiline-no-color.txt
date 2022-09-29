@@ -1,0 +1,7 @@
+╷
+│ Error: 
+│
+│ multiple errors:
+│   - first error
+│   - second error
+╵

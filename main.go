@@ -16,6 +16,7 @@ import (
 var (
 	dryRun       = flag.Bool("dry-run", false, "print moves instead of writing them to disk")
 	ignoreRules  = flag.StringArray("ignore", nil, "rules for ignoring certain differences")
+	noColor      = flag.Bool("no-color", false, "disable color in output")
 	outputFormat = flag.String("output", "blocks", "output format of moves (\"blocks\", \"commands\")")
 	printVersion = flag.Bool("version", false, "print version and exit")
 	showAnalysis = flag.Bool("show-analysis", false, "show detailed analysis of Terraform plan")
@@ -33,6 +34,10 @@ var version string
 
 func run() error {
 	flag.Parse()
+
+	if *noColor {
+		format.NoColor = true
+	}
 
 	if *printVersion {
 		fmt.Println(version)
