@@ -68,7 +68,7 @@ func TestE2E(t *testing.T) {
 			name:    "ignore different attributes",
 			workdir: filepath.Join("testdata", "different-attributes"),
 			args: []string{
-				"--ignore=everything:random_pet:length",
+				"-ignore=everything:random_pet:length",
 			},
 			wantChanges: 1,
 			wantOutputInclude: []string{
@@ -79,7 +79,7 @@ func TestE2E(t *testing.T) {
 			name:    "no color",
 			workdir: filepath.Join("testdata", "same-attributes"),
 			args: []string{
-				"--no-color",
+				"-no-color",
 			},
 			wantChanges: 0,
 			wantOutputExclude: []string{

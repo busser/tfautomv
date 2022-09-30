@@ -72,7 +72,7 @@ In the background, `tfautomv` will run `terraform init` and `terraform plan`.
 
 ### Ignore certain differences
 
-The `--ignore` flag allows you to ignore differences between certain resources'
+The `-ignore` flag allows you to ignore differences between certain resources'
 attributes.
 
 Rules have the following syntax:
@@ -84,7 +84,7 @@ Rules have the following syntax:
 For example:
 
 ```bash
-tfautomv --ignore=everything:random_pet:length
+tfautomv -ignore=everything:random_pet:length
 ```
 
 For nested attributes, separate parent attributes from child attributes with a
@@ -95,7 +95,7 @@ For nested attributes, separate parent attributes from child attributes with a
 <EFFECT>:<RESOURCE TYPE>:parent_list.0
 ```
 
-You can use the `--ignore` flag multiple times to specify multiple rules.
+You can use the `-ignore` flag multiple times to specify multiple rules.
 
 The following effects are available:
 
@@ -104,7 +104,7 @@ The following effects are available:
 
 ### Detailed analysis
 
-For details on which resources match and which don't, use the `--show-analysis`
+For details on which resources match and which don't, use the `-show-analysis`
 flag. Output looks like this:
 
 ![analysis](docs/analysis.png)
@@ -113,14 +113,14 @@ flag. Output looks like this:
 
 There are multiple output options supported, that you can enable with flags:
 
-- `--output=blocks` (default): appends `moved` blocks to a `moves.tf` file
-- `--output=commands`: prints `terraform state mv` commands to standard output
-- `--dry-run`: prints moves in human-readable format
+- `-output=blocks` (default): appends `moved` blocks to a `moves.tf` file
+- `-output=commands`: prints `terraform state mv` commands to standard output
+- `-dry-run`: prints moves in human-readable format
 
 ### Disabling color
 
 You can disable output formatting, including colors, bold text, etc. with the
-`--no-color` flag.
+`-no-color` flag.
 
 ## Known issues
 

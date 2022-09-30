@@ -2,24 +2,16 @@ package main
 
 import (
 	_ "embed"
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/Masterminds/semver/v3"
+
 	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv"
 	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
-	flag "github.com/spf13/pflag"
-)
-
-var (
-	dryRun       = flag.Bool("dry-run", false, "print moves instead of writing them to disk")
-	ignoreRules  = flag.StringArray("ignore", nil, "rules for ignoring certain differences")
-	noColor      = flag.Bool("no-color", false, "disable color in output")
-	outputFormat = flag.String("output", "blocks", "output format of moves (\"blocks\", \"commands\")")
-	printVersion = flag.Bool("version", false, "print version and exit")
-	showAnalysis = flag.Bool("show-analysis", false, "show detailed analysis of Terraform plan")
 )
 
 func main() {
@@ -33,13 +25,13 @@ func main() {
 var version string
 
 func run() error {
-	flag.Parse()
+	parseFlags()
 
-	if *noColor {
+	if noColor {
 		format.NoColor = true
 	}
 
-	if *printVersion {
+	if printVersion {
 		fmt.Println(version)
 		return nil
 	}
@@ -55,23 +47,23 @@ func run() error {
 		return err
 	}
 
-	switch *outputFormat {
+	switch outputFormat {
 	case "blocks":
 		if tfVer.LessThan(semver.MustParse("1.1")) {
 			return fmt.Errorf("terraform version %s does not support moved blocks", tfVer.String())
 		}
 	case "commands":
 	default:
-		return fmt.Errorf("unknown output format %q", *outputFormat)
+		return fmt.Errorf("unknown output format %q", outputFormat)
 	}
 
 	// Parse rules early on so that the user gets quick feedback in case of
 	// syntax errors.
 	var rules []ignore.Rule
-	for _, raw := range *ignoreRules {
+	for _, raw := range ignoreRules {
 		r, err := ignore.ParseRule(raw)
 		if err != nil {
-			return fmt.Errorf("invalid rule passed with --ignore flag %q: %w", raw, err)
+			return fmt.Errorf("invalid rule passed with -ignore flag %q: %w", raw, err)
 		}
 		rules = append(rules, r)
 	}
@@ -95,7 +87,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if *showAnalysis {
+	if showAnalysis {
 		fmt.Fprint(os.Stderr, format.Analysis(analysis))
 	}
 
@@ -110,12 +102,12 @@ func run() error {
 	// moved blocks as a replacement, but those remain incomplete for now.
 	// Community tools like tfmigrate are also popular.
 
-	if *dryRun {
+	if dryRun {
 		fmt.Fprint(os.Stderr, format.Moves(moves))
 		return nil
 	}
 
-	switch *outputFormat {
+	switch outputFormat {
 	case "blocks":
 		err = terraform.AppendMovesToFile(moves, "moves.tf")
 		if err != nil {
@@ -128,7 +120,7 @@ func run() error {
 		fmt.Fprint(os.Stderr, format.Done(fmt.Sprintf("Wrote %d commands to standard output.", len(moves))))
 
 	default:
-		return fmt.Errorf("unknown output format %q", *outputFormat)
+		return fmt.Errorf("unknown output format %q", outputFormat)
 	}
 
 	return nil
@@ -136,4 +128,41 @@ func run() error {
 
 func logln(msg string) {
 	fmt.Fprint(os.Stderr, format.Info(msg))
+}
+
+// Flags
+var (
+	dryRun       bool
+	ignoreRules  []string
+	noColor      bool
+	outputFormat string
+	printVersion bool
+	showAnalysis bool
+)
+
+func parseFlags() {
+	flag.BoolVar(&dryRun, "dry-run", false, "print moves instead of writing them to disk")
+	flag.Var(stringSliceValue{&ignoreRules}, "ignore", "ignore differences based on a `rule`")
+	flag.BoolVar(&noColor, "no-color", false, "disable color in output")
+	flag.StringVar(&outputFormat, "output", "blocks", "output `format` of moves (\"blocks\" or \"commands\")")
+	flag.BoolVar(&showAnalysis, "show-analysis", false, "show detailed analysis of Terraform plan")
+	flag.BoolVar(&printVersion, "version", false, "print version and exit")
+
+	flag.Parse()
+}
+
+type stringSliceValue struct {
+	s *[]string
+}
+
+func (v stringSliceValue) String() string {
+	if v.s == nil || *v.s == nil {
+		return ""
+	}
+	return fmt.Sprintf("%q", *v.s)
+}
+
+func (v stringSliceValue) Set(raw string) error {
+	*v.s = append(*v.s, raw)
+	return nil
 }
