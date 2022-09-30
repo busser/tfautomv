@@ -31,7 +31,7 @@ func AppendMovesToFile(moves []Move, path string) error {
 
 func WriteMovesShellCommands(moves []Move, w io.Writer) {
 	for _, m := range moves {
-		fmt.Fprintf(w, "terraform state mv %s %s\n", m.From, m.To)
+		fmt.Fprintf(w, "terraform state mv %q %q\n", m.From, m.To)
 	}
 }
 

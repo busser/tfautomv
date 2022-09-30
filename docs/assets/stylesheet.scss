@@ -1,0 +1,6 @@
+$font-code: {{ $.Site.Params.code_font | default "'Roboto', sans-serif" }};
+
+.markdown code {
+    font-family: $font-code;
+    line-height: 1.25;
+}

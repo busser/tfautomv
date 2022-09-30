@@ -1,0 +1,21 @@
+languageCode = 'en-us'
+title = 'tfautomv'
+
+theme = "hugo-book"
+
+[menu]
+    [[menu.after]]
+        name = "Github repository"
+        url = "https://github.com/padok-team/tfautomv"
+        weight = 1
+    [[menu.after]]
+        name = "Padok tech blog"
+        url = "https://www.padok.fr/en/blog"
+        weight = 2
+
+[params]
+    BookSection = '*'
+    google_fonts = [
+        ["Fira Code", "400, 700"],
+    ]
+    code_font = "Fira Code"
