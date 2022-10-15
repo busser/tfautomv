@@ -4,6 +4,7 @@ package e2e_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/padok-team/tfautomv/internal/terraform"
 )
 
@@ -99,47 +101,102 @@ func TestE2E(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			if tc.skip {
-				t.Skip(tc.skipReason)
-			}
 
-			setupWorkdir(t, tc.workdir)
+			for _, outputFormat := range []string{"blocks", "commands"} {
+				t.Run(outputFormat, func(t *testing.T) {
 
-			workdir := filepath.Join(tc.workdir, "refactored-code")
+					/*
+						Skip tests that serve as documentation of known limitations or
+						use features incompatible with the Terraform CLI's version.
+					*/
 
-			tfautomvCmd := exec.Command(binPath, tc.args...)
-			tfautomvCmd.Dir = workdir
+					if tc.skip {
+						t.Skip(tc.skipReason)
+					}
 
-			var output bytes.Buffer
-			tfautomvCmd.Stdout = io.MultiWriter(&output, os.Stderr)
-			tfautomvCmd.Stderr = io.MultiWriter(&output, os.Stderr)
+					if outputFormat == "blocks" {
+						tfVer, err := terraform.NewRunner(".").Version()
+						if err != nil {
+							t.Fatalf("failed to get terraform version: %v", err)
+						}
 
-			if err := tfautomvCmd.Run(); err != nil {
-				t.Fatalf("running tfautomv: %v", err)
-			}
+						if tfVer.LessThan(semver.MustParse("1.1")) {
+							t.Skip("terraform moves output format is only supported in terraform 1.1 and above")
+						}
+					}
 
-			outputStr := output.String()
-			t.Logf("full output:\n%q", outputStr)
+					/*
+						Create a fresh environment for each test.
+					*/
 
-			for _, s := range tc.wantOutputInclude {
-				if !strings.Contains(outputStr, s) {
-					t.Errorf("output should contain %q but does not", s)
-				}
-			}
-			for _, s := range tc.wantOutputExclude {
-				if strings.Contains(outputStr, s) {
-					t.Errorf("output should not contain %q but does", s)
-				}
-			}
+					setupWorkdir(t, tc.workdir)
+					workdir := filepath.Join(tc.workdir, "refactored-code")
 
-			plan, err := terraform.NewRunner(workdir).Plan()
-			if err != nil {
-				t.Fatalf("terraform plan (after addings moves): %v", err)
-			}
+					args := append(tc.args, fmt.Sprintf("-output=%s", outputFormat))
 
-			changes := plan.NumChanges()
-			if changes != tc.wantChanges {
-				t.Errorf("%d changes remaining, want %d", changes, tc.wantChanges)
+					/*
+						Run tfautomv to generate `moved` blocks or `terraform state mv` commands.
+					*/
+
+					tfautomvCmd := exec.Command(binPath, args...)
+					tfautomvCmd.Dir = workdir
+
+					var tfautomvStdout bytes.Buffer
+					var tfautomvCompleteOutput bytes.Buffer
+					tfautomvCmd.Stdout = io.MultiWriter(&tfautomvStdout, &tfautomvCompleteOutput, os.Stderr)
+					tfautomvCmd.Stderr = io.MultiWriter(&tfautomvCompleteOutput, os.Stderr)
+
+					if err := tfautomvCmd.Run(); err != nil {
+						t.Fatalf("running tfautomv: %v", err)
+					}
+
+					/*
+						Validate that tfautomv produced the expected output.
+					*/
+
+					outputStr := tfautomvCompleteOutput.String()
+					for _, s := range tc.wantOutputInclude {
+						if !strings.Contains(outputStr, s) {
+							t.Errorf("output should contain %q but does not", s)
+						}
+					}
+					for _, s := range tc.wantOutputExclude {
+						if strings.Contains(outputStr, s) {
+							t.Errorf("output should not contain %q but does", s)
+						}
+					}
+
+					/*
+						If using `terraform state mv` commands, run them.
+					*/
+
+					if outputFormat == "commands" {
+						cmd := exec.Command("/bin/sh")
+						cmd.Dir = workdir
+
+						cmd.Stdin = &tfautomvStdout
+						cmd.Stdout = os.Stderr
+						cmd.Stderr = os.Stderr
+
+						if err := cmd.Run(); err != nil {
+							t.Fatalf("running terraform state mv commands: %v", err)
+						}
+					}
+
+					/*
+						Count how many changes remain in Terraform's plan.
+					*/
+
+					plan, err := terraform.NewRunner(workdir).Plan()
+					if err != nil {
+						t.Fatalf("terraform plan (after addings moves): %v", err)
+					}
+
+					changes := plan.NumChanges()
+					if changes != tc.wantChanges {
+						t.Errorf("%d changes remaining, want %d", changes, tc.wantChanges)
+					}
+				})
 			}
 		})
 	}
