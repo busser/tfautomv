@@ -12,6 +12,11 @@ analyses Terraform's plan. Based on this analysis, it identifies resources that
 have moved in your codebase but not yet in Terraform's state. For each of those
 resources, it appends a `moved` block to the `moves.tf` file.
 
+The following versions of Terraform are supported:
+
+- `1.1.x` and above by default
+- `0.13.x` and above when using the `-output=commands` flag
+
 Tfautomv is fully provider-agnostic. It works with all Terraform providers.
 
 ## How-to's
