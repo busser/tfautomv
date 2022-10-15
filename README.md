@@ -47,6 +47,11 @@ for a hands-on guided introduction de tfautomv.
 See [Usage](https://padok-team.github.io/tfautomv/usage/) for a list of
 tfautomv's features.
 
+The following versions of Terraform are supported:
+
+- `1.1.x` and above by default
+- `0.13.x` and above when using the `-output=commands` flag
+
 ## How it works
 
 See [Design](https://padok-team.github.io/tfautomv/design/) for details on how tfautomv works under the hood.
