@@ -17,7 +17,7 @@ Both these commands should work:
 
 ```bash
 terraform version
-tfautom -version
+tfautomv -version
 ```
 
 ## 1. Initial Terraform code
