@@ -1,6 +1,12 @@
 name: Continous Integration
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-and-unit-tests:
@@ -36,6 +42,9 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform-version }}
           terraform_wrapper: false # script interferes with parsing of plan
+      - run: |
+          wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.39.2/terragrunt_linux_amd64 -O /usr/local/bin/terragrunt
+          chmod u+x /usr/local/bin/terragrunt
       - run: make test-e2e
 
   end-to-end-tests-check:
