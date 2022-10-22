@@ -3,21 +3,33 @@ package terraform
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/Masterminds/semver/v3"
 )
 
 type runner struct {
 	workdir string
+	command string
 }
 
 func NewRunner(workdir string) *runner {
 	r := runner{
 		workdir: workdir,
+		command: "terraform",
+	}
+
+	// Switch seemlessly to Terragrunt if the directory contains a Terragrunt
+	// configuration file.
+	terragruntConfig := filepath.Join(workdir, "terragrunt.hcl")
+	if _, err := os.Stat(terragruntConfig); !errors.Is(err, fs.ErrNotExist) {
+		r.command = "terragrunt"
 	}
 
 	return &r
@@ -70,7 +82,7 @@ func (r *runner) Version() (*semver.Version, error) {
 }
 
 func (r *runner) runCommand(args []string, out io.Writer) error {
-	cmd := exec.Command("terraform", args...)
+	cmd := exec.Command(r.command, args...)
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf

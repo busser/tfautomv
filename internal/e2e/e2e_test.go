@@ -95,6 +95,14 @@ func TestE2E(t *testing.T) {
 			skip:        true,
 			skipReason:  "tfautomv is currently incompatible with Terraform Cloud workspaces with the \"Remote\" execution mode.\nFor more details, see https://github.com/padok-team/tfautomv/issues/17",
 		},
+		{
+			name:        "terragrunt",
+			workdir:     filepath.Join("testdata", "terragrunt", "same-attributes"),
+			wantChanges: 0,
+			wantOutputInclude: []string{
+				colorEscapeSequence,
+			},
+		},
 	}
 
 	binPath := buildBinary(t)
@@ -115,7 +123,8 @@ func TestE2E(t *testing.T) {
 					}
 
 					if outputFormat == "blocks" {
-						tfVer, err := terraform.NewRunner(".").Version()
+						workdir := filepath.Join(tc.workdir, "original-code")
+						tfVer, err := terraform.NewRunner(workdir).Version()
 						if err != nil {
 							t.Fatalf("failed to get terraform version: %v", err)
 						}
@@ -132,12 +141,11 @@ func TestE2E(t *testing.T) {
 					setupWorkdir(t, tc.workdir)
 					workdir := filepath.Join(tc.workdir, "refactored-code")
 
-					args := append(tc.args, fmt.Sprintf("-output=%s", outputFormat))
-
 					/*
 						Run tfautomv to generate `moved` blocks or `terraform state mv` commands.
 					*/
 
+					args := append(tc.args, fmt.Sprintf("-output=%s", outputFormat))
 					tfautomvCmd := exec.Command(binPath, args...)
 					tfautomvCmd.Dir = workdir
 
