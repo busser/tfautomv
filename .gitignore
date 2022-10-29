@@ -4,6 +4,9 @@
 **/terraform.tfstate
 **/terraform.tfstate.*.backup
 
+# Terragrunt artifacts
+.terragrunt-cache
+
 # Compiled binaries
 bin/
 
