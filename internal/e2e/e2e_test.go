@@ -4,6 +4,7 @@ package e2e_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -12,11 +13,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-exec/tfexec"
 	tfjson "github.com/hashicorp/terraform-json"
 
 	"github.com/padok-team/tfautomv/internal/slices"
-	"github.com/padok-team/tfautomv/internal/terraform"
 )
 
 // ANSI escape sequence used for color output
@@ -118,12 +119,16 @@ func TestE2E(t *testing.T) {
 					}
 
 					if outputFormat == "blocks" {
-						tfVer, err := terraform.NewRunner(".").Version()
+						tf, err := tfexec.NewTerraform(".", "terraform")
+						if err != nil {
+							t.Fatal(err)
+						}
+						tfVer, _, err := tf.Version(context.TODO(), false)
 						if err != nil {
 							t.Fatalf("failed to get terraform version: %v", err)
 						}
 
-						if tfVer.LessThan(semver.MustParse("1.1")) {
+						if tfVer.LessThan(version.Must(version.NewVersion("1.1"))) {
 							t.Skip("terraform moves output format is only supported in terraform 1.1 and above")
 						}
 					}
@@ -190,9 +195,22 @@ func TestE2E(t *testing.T) {
 						Count how many changes remain in Terraform's plan.
 					*/
 
-					plan, err := terraform.NewRunner(workdir).Plan()
+					tf, err := tfexec.NewTerraform(workdir, "terraform")
 					if err != nil {
+						t.Fatal(err)
+					}
+
+					planFile, err := os.CreateTemp("", "tfautomv.*.plan")
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer os.Remove(planFile.Name())
+					if _, err := tf.Plan(context.TODO(), tfexec.Out(planFile.Name())); err != nil {
 						t.Fatalf("terraform plan (after addings moves): %v", err)
+					}
+					plan, err := tf.ShowPlanFile(context.TODO(), planFile.Name())
+					if err != nil {
+						t.Fatalf("terraform show (after addings moves): %v", err)
 					}
 
 					changes := numChanges(plan)
@@ -264,12 +282,15 @@ func setupWorkdir(t *testing.T, workdir string) {
 		ensureDirectoryRemoved(t, d)
 	}
 
-	original := terraform.NewRunner(originalWorkdir)
-
-	if err := original.Init(); err != nil {
+	original, err := tfexec.NewTerraform(originalWorkdir, "terraform")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := original.Apply(); err != nil {
+
+	if err := original.Init(context.TODO()); err != nil {
+		t.Fatal(err)
+	}
+	if err := original.Apply(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 

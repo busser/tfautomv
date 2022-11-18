@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"flag"
 	"fmt"
 	"os"
 
-	"github.com/Masterminds/semver/v3"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-exec/tfexec"
 
 	"github.com/padok-team/tfautomv/internal/format"
 	"github.com/padok-team/tfautomv/internal/terraform"
@@ -22,7 +24,7 @@ func main() {
 }
 
 //go:embed VERSION
-var version string
+var tfautomvVersion string
 
 func run() error {
 	parseFlags()
@@ -32,24 +34,29 @@ func run() error {
 	}
 
 	if printVersion {
-		fmt.Println(version)
+		fmt.Println(tfautomvVersion)
 		return nil
 	}
 
-	tf := terraform.NewRunner(".")
+	tf, err := tfexec.NewTerraform(".", "terraform")
+	if err != nil {
+		return err
+	}
+
+	ctx := context.TODO()
 
 	// Some Terraform versions do not support some of tfautomv's output options.
 	// Check that everything is OK early on, to avoid wasting time running a
 	// plan for nothing.
 
-	tfVer, err := tf.Version()
+	tfVer, _, err := tf.Version(ctx, false)
 	if err != nil {
 		return err
 	}
 
 	switch outputFormat {
 	case "blocks":
-		if tfVer.LessThan(semver.MustParse("1.1")) {
+		if tfVer.LessThan(version.Must(version.NewVersion("1.1"))) {
 			return fmt.Errorf("terraform version %s does not support moved blocks", tfVer.String())
 		}
 	case "commands":
@@ -72,13 +79,21 @@ func run() error {
 	// need. In the future, we may choose to use other sources of information.
 
 	logln("Running \"terraform init\"...")
-	err = tf.Init()
+	err = tf.Init(ctx)
 	if err != nil {
 		return err
 	}
 
 	logln("Running \"terraform plan\"...")
-	plan, err := tf.Plan()
+	planFile, err := os.CreateTemp("", "tfautomv.*.plan")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(planFile.Name())
+	if _, err := tf.Plan(context.TODO(), tfexec.Out(planFile.Name())); err != nil {
+		return err
+	}
+	plan, err := tf.ShowPlanFile(context.TODO(), planFile.Name())
 	if err != nil {
 		return err
 	}
