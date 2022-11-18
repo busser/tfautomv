@@ -21,15 +21,17 @@ archives:
       - goos: windows
         format: zip
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 snapshot:
-  name_template: '{{ .Tag }}-next'
+  name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
+release:
+  prerelease: auto
 brews:
   - name: tfautomv
     homepage: https://github.com/padok-team/tfautomv
@@ -42,3 +44,19 @@ brews:
       bin.install "tfautomv"
     test: |
       system "#{bin}/tfautomv -version"
+aurs:
+  - name: tfautomv-bin
+    homepage: https://github.com/padok-team/tfautomv
+    description: Generate Terraform moved blocks automatically for painless refactoring
+    maintainers:
+      - Arthur Busser <arthur dot busser at gmail dot com>
+    license: Apache-2.0
+    git_url: "ssh://aur@aur.archlinux.org/tfautomv-bin.git"
+    skip_upload: auto
+    provides:
+      - tfautomv
+    optdepends:
+      - "terraform: for running Terraform"
+    package: |-
+      install -Dm755 "./tfautomv" "$pkgdir/usr/bin/tfautomv"
+      install -Dm644 "./LICENSE" "$pkgdir/usr/share/licenses/tfautomv/LICENSE"
