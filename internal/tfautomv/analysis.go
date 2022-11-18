@@ -1,9 +1,10 @@
 package tfautomv
 
 import (
+	tfjson "github.com/hashicorp/terraform-json"
+
 	"github.com/padok-team/tfautomv/internal/flatmap"
 	"github.com/padok-team/tfautomv/internal/slices"
-	"github.com/padok-team/tfautomv/internal/terraform"
 	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
 )
 
@@ -36,7 +37,7 @@ type Resource struct {
 // for creation with resources planned for destruction of the same type.
 // Resources may match, depending on their attributes' values and the rules
 // passed to AnalysisFromPlan.
-func AnalysisFromPlan(plan *terraform.Plan, rules []ignore.Rule) (*Analysis, error) {
+func AnalysisFromPlan(plan *tfjson.Plan, rules []ignore.Rule) (*Analysis, error) {
 
 	// We start with some preprocessing. We identify all ressources planned for
 	// creation, or deletion, or both and ignore the rest. We flatten each of
@@ -48,8 +49,8 @@ func AnalysisFromPlan(plan *terraform.Plan, rules []ignore.Rule) (*Analysis, err
 	destroyedByType := make(map[string][]*Resource)
 
 	for _, c := range plan.ResourceChanges {
-		isCreated := slices.Contains(c.Change.Actions, terraform.CreateAction)
-		isDestroyed := slices.Contains(c.Change.Actions, terraform.DeleteAction)
+		isCreated := slices.Contains(c.Change.Actions, tfjson.ActionCreate)
+		isDestroyed := slices.Contains(c.Change.Actions, tfjson.ActionDelete)
 
 		if !isCreated && !isDestroyed {
 			continue

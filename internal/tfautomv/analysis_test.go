@@ -4,8 +4,9 @@ import (
 	"sort"
 	"testing"
 
+	tfjson "github.com/hashicorp/terraform-json"
+
 	"github.com/padok-team/tfautomv/internal/slices"
-	"github.com/padok-team/tfautomv/internal/terraform"
 )
 
 type dummyResource struct {
@@ -13,26 +14,26 @@ type dummyResource struct {
 	typ     string
 }
 
-func dummyPlan(t *testing.T, created, destroyed []dummyResource) *terraform.Plan {
+func dummyPlan(t *testing.T, created, destroyed []dummyResource) *tfjson.Plan {
 	t.Helper()
 
-	var plan terraform.Plan
+	var plan tfjson.Plan
 
 	for _, r := range created {
-		plan.ResourceChanges = append(plan.ResourceChanges, terraform.ResourceChange{
+		plan.ResourceChanges = append(plan.ResourceChanges, &tfjson.ResourceChange{
 			Address: r.address,
 			Type:    r.typ,
-			Change: terraform.Change{
-				Actions: []string{terraform.CreateAction},
+			Change: &tfjson.Change{
+				Actions: []tfjson.Action{tfjson.ActionCreate},
 			},
 		})
 	}
 	for _, r := range destroyed {
-		plan.ResourceChanges = append(plan.ResourceChanges, terraform.ResourceChange{
+		plan.ResourceChanges = append(plan.ResourceChanges, &tfjson.ResourceChange{
 			Address: r.address,
 			Type:    r.typ,
-			Change: terraform.Change{
-				Actions: []string{terraform.DeleteAction},
+			Change: &tfjson.Change{
+				Actions: []tfjson.Action{tfjson.ActionDelete},
 			},
 		})
 	}

@@ -1,18 +1,30 @@
 package flatmap
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"reflect"
 )
 
 // Flatten takes any object and turns it into a flat map[string]interface{}.
 //
-// With "obj", map keys must be strings. Values must be slices, maps,
+// "obj" must be a map with keys that are string. Values must be slices, maps,
 // primitives, or any combination of those together.
-func Flatten(obj map[string]interface{}) (map[string]interface{}, error) {
+func Flatten(obj interface{}) (map[string]interface{}, error) {
+	if obj == nil {
+		return nil, nil
+	}
+
+	objMap, ok := obj.(map[string]interface{})
+	if !ok {
+		log.Printf("%#v", obj)
+		return nil, errors.New("can only flatten maps with strings as keys")
+	}
+
 	result := make(map[string]interface{})
 
-	for k, raw := range obj {
+	for k, raw := range objMap {
 		err := flatten(result, k, reflect.ValueOf(raw))
 		if err != nil {
 			return nil, err
