@@ -6,26 +6,60 @@ description: How to set up tfautomv on your workstation.
 
 # Installation
 
-Follow the instructions in any of the tabs below:
+Follow any of the instructions below.
 
-{{< tabs "installation" >}}
-{{< tab "Homebrew" >}}
+## Mac OS
+
+### Pre-compiled binary
 
 ```bash
 brew install padok-team/tap/tfautomv
 ```
 
-{{< /tab >}}
-{{< tab "Pre-compiled binary" >}}
+_This formula is maintained by the core tfautomv team. It is updated
+automatically after every release._
 
-On the Github reposotory's [Releases page](https://github.com/padok-team/tfautomv/releases),
+## Arch Linux
+
+You can install tfautomv with the [Arch User Repository](https://wiki.archlinux.org/title/Arch_User_Repository).
+
+### Pre-compiled binary
+
+```bash
+yay tfautomv-bin
+```
+
+_The [`tfautomv-bin` AUR package](https://aur.archlinux.org/packages/tfautomv-bin)
+is maintained by the core tfautomv team. It is updated automatically after every
+release._
+
+### From source
+
+```bash
+yay tfautomv
+```
+
+_The [`tfautomv` AUR package](https://aur.archlinux.org/packages/tfautomv) is
+maintained by a member of the community._
+
+## Others
+
+{{< hint info >}}
+
+The tfautomv team is [open to requests](https://github.com/padok-team/tfautomv/issues)
+of other installation methods.
+
+{{< /hint >}}
+
+### Pre-compiled binary
+
+On the Github repository's [Releases page](https://github.com/padok-team/tfautomv/releases),
 download the binary that matches your workstation's OS and CPU architecture.
 
 Put the binary in a directory present in your system's `PATH` environment
 variable.
 
-{{< /tab >}}
-{{< tab "From source" >}}
+### From source
 
 You must have Go 1.18+ installed to compile tfautomv.
 
@@ -40,16 +74,7 @@ make build
 Then, move `bin/tfautomv` to a directory resent in your system's `PATH`
 environment variable.
 
-{{< /tab >}}
-{{< tab "Distro Packages" >}}
-Available in AUR for Arch Linux: https://aur.archlinux.org/packages/tfautomv
-
-```
-yay tfautomv
-```
-
-{{< /tab >}}
-{{< /tabs >}}
+## Next steps
 
 Confirm that tfautomv is properly installed:
 
@@ -57,6 +82,5 @@ Confirm that tfautomv is properly installed:
 tfautomv -version
 ```
 
-## Next steps
-
-Follow the [guided tutorial]({{< relref "getting-started/tutorial.md" >}}) to become familiar with tfautomv.
+Then Follow the [guided tutorial]({{< relref "getting-started/tutorial.md" >}})
+to become familiar with tfautomv.
