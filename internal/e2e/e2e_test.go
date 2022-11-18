@@ -99,6 +99,17 @@ func TestE2E(t *testing.T) {
 			skip:        true,
 			skipReason:  "tfautomv is currently incompatible with Terraform Cloud workspaces with the \"Remote\" execution mode.\nFor more details, see https://github.com/padok-team/tfautomv/issues/17",
 		},
+		{
+			name:    "terragrunt",
+			workdir: filepath.Join("testdata", "terragrunt"),
+			args: []string{
+				"-terraform-bin=terragrunt",
+			},
+			wantChanges: 0,
+			wantOutputInclude: []string{
+				colorEscapeSequence,
+			},
+		},
 	}
 
 	binPath := buildBinary(t)
@@ -108,6 +119,16 @@ func TestE2E(t *testing.T) {
 
 			for _, outputFormat := range []string{"blocks", "commands"} {
 				t.Run(outputFormat, func(t *testing.T) {
+
+					originalWorkdir := filepath.Join(tc.workdir, "original-code")
+					refactoredWorkdir := filepath.Join(tc.workdir, "refactored-code")
+
+					terraformBin := "terraform"
+					for _, a := range tc.args {
+						if strings.HasPrefix(a, "-terraform-bin=") {
+							terraformBin = strings.TrimPrefix(a, "-terraform-bin=")
+						}
+					}
 
 					/*
 						Skip tests that serve as documentation of known limitations or
@@ -119,7 +140,7 @@ func TestE2E(t *testing.T) {
 					}
 
 					if outputFormat == "blocks" {
-						tf, err := tfexec.NewTerraform(".", "terraform")
+						tf, err := tfexec.NewTerraform(originalWorkdir, terraformBin)
 						if err != nil {
 							t.Fatal(err)
 						}
@@ -137,8 +158,7 @@ func TestE2E(t *testing.T) {
 						Create a fresh environment for each test.
 					*/
 
-					setupWorkdir(t, tc.workdir)
-					workdir := filepath.Join(tc.workdir, "refactored-code")
+					setupWorkdir(t, originalWorkdir, refactoredWorkdir, terraformBin)
 
 					args := append(tc.args, fmt.Sprintf("-output=%s", outputFormat))
 
@@ -147,7 +167,7 @@ func TestE2E(t *testing.T) {
 					*/
 
 					tfautomvCmd := exec.Command(binPath, args...)
-					tfautomvCmd.Dir = workdir
+					tfautomvCmd.Dir = refactoredWorkdir
 
 					var tfautomvStdout bytes.Buffer
 					var tfautomvCompleteOutput bytes.Buffer
@@ -180,7 +200,7 @@ func TestE2E(t *testing.T) {
 
 					if outputFormat == "commands" {
 						cmd := exec.Command("/bin/sh")
-						cmd.Dir = workdir
+						cmd.Dir = refactoredWorkdir
 
 						cmd.Stdin = &tfautomvStdout
 						cmd.Stdout = os.Stderr
@@ -195,7 +215,7 @@ func TestE2E(t *testing.T) {
 						Count how many changes remain in Terraform's plan.
 					*/
 
-					tf, err := tfexec.NewTerraform(workdir, "terraform")
+					tf, err := tfexec.NewTerraform(refactoredWorkdir, terraformBin)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -227,7 +247,7 @@ func numChanges(p *tfjson.Plan) int {
 	count := 0
 
 	for _, rc := range p.ResourceChanges {
-		if slices.Contains(rc.Change.Actions, "create") || slices.Contains(rc.Change.Actions, "delete") {
+		if slices.Contains(rc.Change.Actions, tfjson.ActionCreate) || slices.Contains(rc.Change.Actions, tfjson.ActionDelete) {
 			count++
 		}
 	}
@@ -257,11 +277,8 @@ func buildBinary(t *testing.T) string {
 	return binPath
 }
 
-func setupWorkdir(t *testing.T, workdir string) {
+func setupWorkdir(t *testing.T, originalWorkdir, refactoredWorkdir, terraformBin string) {
 	t.Helper()
-
-	originalWorkdir := filepath.Join(workdir, "original-code")
-	refactoredWorkdir := filepath.Join(workdir, "refactored-code")
 
 	filesToRemove := []string{
 		filepath.Join(originalWorkdir, "terraform.tfstate"),
@@ -282,7 +299,7 @@ func setupWorkdir(t *testing.T, workdir string) {
 		ensureDirectoryRemoved(t, d)
 	}
 
-	original, err := tfexec.NewTerraform(originalWorkdir, "terraform")
+	original, err := tfexec.NewTerraform(originalWorkdir, terraformBin)
 	if err != nil {
 		t.Fatal(err)
 	}

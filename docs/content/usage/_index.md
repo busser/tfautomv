@@ -38,6 +38,8 @@ Usage of tfautomv:
     	output format of moves ("blocks" or "commands") (default "blocks")
   -show-analysis
     	show detailed analysis of Terraform plan
+  -terraform-bin string
+    	terraform binary to use (default "terraform")
   -version
     	print version and exit
 ```

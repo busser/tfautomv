@@ -36,6 +36,10 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform-version }}
           terraform_wrapper: false # script interferes with parsing of plan
+      - name: Install Terragrunt
+        uses: autero1/action-terragrunt@v1.1.0
+        with:
+          terragrunt_version: latest
       - run: make test-e2e
 
   end-to-end-tests-check:
