@@ -41,6 +41,14 @@ Then, move `bin/tfautomv` to a directory resent in your system's `PATH`
 environment variable.
 
 {{< /tab >}}
+{{< tab "Distro Packages" >}}
+Available in AUR for Arch Linux: https://aur.archlinux.org/packages/tfautomv
+
+```
+yay tfautomv
+```
+
+{{< /tab >}}
 {{< /tabs >}}
 
 Confirm that tfautomv is properly installed:
