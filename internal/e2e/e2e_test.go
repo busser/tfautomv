@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/padok-team/tfautomv/internal/slices"
 	"github.com/padok-team/tfautomv/internal/terraform"
 )
 
@@ -192,7 +193,7 @@ func TestE2E(t *testing.T) {
 						t.Fatalf("terraform plan (after addings moves): %v", err)
 					}
 
-					changes := plan.NumChanges()
+					changes := numChanges(plan)
 					if changes != tc.wantChanges {
 						t.Errorf("%d changes remaining, want %d", changes, tc.wantChanges)
 					}
@@ -200,6 +201,18 @@ func TestE2E(t *testing.T) {
 			}
 		})
 	}
+}
+
+func numChanges(p *terraform.Plan) int {
+	count := 0
+
+	for _, rc := range p.ResourceChanges {
+		if slices.Contains(rc.Change.Actions, "create") || slices.Contains(rc.Change.Actions, "delete") {
+			count++
+		}
+	}
+
+	return count
 }
 
 func buildBinary(t *testing.T) string {
