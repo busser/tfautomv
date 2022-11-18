@@ -14,6 +14,9 @@ const (
 	// values.
 	RuleTypeEverything RuleType = "everything"
 
+	// RuleTypePrefix ignores a given prefix when comparing attribute values.
+	RuleTypePrefix RuleType = "prefix"
+
 	// RuleTypeWhitespace ignores differences in whitespace between two
 	// attributes' values. Whitespace is as defined by unicode.IsSpace.
 	RuleTypeWhitespace RuleType = "whitespace"
@@ -46,6 +49,8 @@ func ParseRule(s string) (Rule, error) {
 	switch ruleType {
 	case RuleTypeEverything:
 		return parseEverythingRule(parts[1])
+	case RuleTypePrefix:
+		return parsePrefixRule(parts[1])
 	case RuleTypeWhitespace:
 		return parseWhitespaceRule(parts[1])
 	default:
