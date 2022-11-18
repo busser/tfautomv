@@ -58,6 +58,7 @@ func TestCompare(t *testing.T) {
 					"f": 456,
 					"h": "goodbye",
 					"i": "{\"foo\":\"bar\"}",
+					"j": "some_string",
 				},
 			},
 			destroyed: &Resource{
@@ -71,14 +72,16 @@ func TestCompare(t *testing.T) {
 					"g": "whatever",
 					"h": 789,
 					"i": "{\n\t\"foo\": \"bar\"\n}",
+					"j": "b/some_string",
 				},
 			},
 			rules: []ignore.Rule{
 				ignore.MustParseRule("everything:my_resource:c"),
 				ignore.MustParseRule("whitespace:my_resource:i"),
+				ignore.MustParseRule("prefix:my_resource:j:b/"),
 			},
 			wantMatching:    []string{"a", "b"},
-			wantIgnored:     []string{"c", "i"},
+			wantIgnored:     []string{"c", "i", "j"},
 			wantMismatching: []string{"e", "f", "h"},
 		},
 	}
