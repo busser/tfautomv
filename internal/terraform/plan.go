@@ -1,7 +1,5 @@
 package terraform
 
-import "github.com/padok-team/tfautomv/internal/slices"
-
 type Plan struct {
 	ResourceChanges []ResourceChange `json:"resource_changes"`
 }
@@ -22,15 +20,3 @@ const (
 	CreateAction = "create"
 	DeleteAction = "delete"
 )
-
-func (p *Plan) NumChanges() int {
-	count := 0
-
-	for _, rc := range p.ResourceChanges {
-		if slices.Contains(rc.Change.Actions, "create") || slices.Contains(rc.Change.Actions, "delete") {
-			count++
-		}
-	}
-
-	return count
-}
