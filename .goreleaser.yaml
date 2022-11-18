@@ -50,6 +50,7 @@ aurs:
     description: Generate Terraform moved blocks automatically for painless refactoring
     maintainers:
       - Arthur Busser <arthur dot busser at gmail dot com>
+    private_key: "{{ .Env.AUR_KEY }}"
     license: Apache-2.0
     git_url: "ssh://aur@aur.archlinux.org/tfautomv-bin.git"
     skip_upload: auto
