@@ -38,7 +38,7 @@ func run() error {
 		return nil
 	}
 
-	tf, err := tfexec.NewTerraform(".", "terraform")
+	tf, err := tfexec.NewTerraform(".", terraformBin)
 	if err != nil {
 		return err
 	}
@@ -153,6 +153,7 @@ var (
 	outputFormat string
 	printVersion bool
 	showAnalysis bool
+	terraformBin string
 )
 
 func parseFlags() {
@@ -162,6 +163,7 @@ func parseFlags() {
 	flag.StringVar(&outputFormat, "output", "blocks", "output `format` of moves (\"blocks\" or \"commands\")")
 	flag.BoolVar(&showAnalysis, "show-analysis", false, "show detailed analysis of Terraform plan")
 	flag.BoolVar(&printVersion, "version", false, "print version and exit")
+	flag.StringVar(&terraformBin, "terraform-bin", "terraform", "terraform binary to use")
 
 	flag.Parse()
 }
