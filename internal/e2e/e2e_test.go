@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	tfjson "github.com/hashicorp/terraform-json"
+
 	"github.com/padok-team/tfautomv/internal/slices"
 	"github.com/padok-team/tfautomv/internal/terraform"
 )
@@ -203,7 +205,7 @@ func TestE2E(t *testing.T) {
 	}
 }
 
-func numChanges(p *terraform.Plan) int {
+func numChanges(p *tfjson.Plan) int {
 	count := 0
 
 	for _, rc := range p.ResourceChanges {
