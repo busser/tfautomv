@@ -19,6 +19,16 @@ brew install padok-team/tap/tfautomv
 _This formula is maintained by the core tfautomv team. It is updated
 automatically after every release._
 
+## General Linux
+
+### Pre-compiled binary
+
+```bash
+curl -L https://raw.githubusercontent.com/padok-team/tfautomv/main/install.sh | bash
+```
+
+_This script installs the latest release by default._
+
 ## Arch Linux
 
 You can install tfautomv with the [Arch User Repository](https://wiki.archlinux.org/title/Arch_User_Repository).
@@ -42,7 +52,7 @@ yay tfautomv
 _The [`tfautomv` AUR package](https://aur.archlinux.org/packages/tfautomv) is
 maintained by a member of the community._
 
-## Others
+## Manual
 
 {{< hint info >}}
 
