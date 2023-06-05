@@ -12,6 +12,7 @@ When refactoring a Terraform codebase, you often need to write [`moved` blocks](
 - [Installation](#installation)
 - [Usage](#usage)
 - [How it works](#how-it-works)
+- [Thanks](#thanks)
 - [License](#license)
 
 ## Why does this exist?
@@ -55,6 +56,10 @@ The following versions of Terraform are supported:
 ## How it works
 
 See [Design](https://padok-team.github.io/tfautomv/design/) for details on how tfautomv works under the hood.
+
+## Thanks
+
+Thanks to [Padok](https://www.padok.fr), where this project was born 💜
 
 ## License
 
