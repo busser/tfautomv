@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/busser/tfautomv/internal/tfautomv"
 	"github.com/mitchellh/colorstring"
-	"github.com/padok-team/tfautomv/internal/tfautomv"
 )
 
 func Analysis(analysis *tfautomv.Analysis) string {

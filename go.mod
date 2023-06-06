@@ -1,4 +1,4 @@
-module github.com/padok-team/tfautomv
+module github.com/busser/tfautomv
 
 go 1.19
 

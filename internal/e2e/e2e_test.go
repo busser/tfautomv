@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 	tfjson "github.com/hashicorp/terraform-json"
 
-	"github.com/padok-team/tfautomv/internal/slices"
+	"github.com/busser/tfautomv/internal/slices"
 )
 
 // ANSI escape sequence used for color output
@@ -97,7 +97,7 @@ func TestE2E(t *testing.T) {
 			workdir:     filepath.Join("testdata", "terraform-cloud"),
 			wantChanges: 0,
 			skip:        true,
-			skipReason:  "tfautomv is currently incompatible with Terraform Cloud workspaces with the \"Remote\" execution mode.\nFor more details, see https://github.com/padok-team/tfautomv/issues/17",
+			skipReason:  "tfautomv is currently incompatible with Terraform Cloud workspaces with the \"Remote\" execution mode.\nFor more details, see https://github.com/busser/tfautomv/issues/17",
 		},
 		{
 			name:    "terragrunt",

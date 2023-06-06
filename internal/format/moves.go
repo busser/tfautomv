@@ -3,8 +3,8 @@ package format
 import (
 	"bytes"
 
+	"github.com/busser/tfautomv/internal/terraform"
 	"github.com/mitchellh/colorstring"
-	"github.com/padok-team/tfautomv/internal/terraform"
 )
 
 func Moves(moves []terraform.Move) string {

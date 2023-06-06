@@ -3,7 +3,7 @@ package tfautomv
 import (
 	"sort"
 
-	"github.com/padok-team/tfautomv/internal/terraform"
+	"github.com/busser/tfautomv/internal/terraform"
 )
 
 // MovesFromAnalysis identifies which resources should be moved from one

@@ -6,7 +6,7 @@ theme = "hugo-book"
 [menu]
     [[menu.after]]
         name = "Github repository"
-        url = "https://github.com/padok-team/tfautomv"
+        url = "https://github.com/busser/tfautomv"
         weight = 1
     [[menu.after]]
         name = "Padok tech blog"

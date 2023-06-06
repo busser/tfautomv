@@ -1,8 +1,8 @@
 # Automatic Terraform `moved` blocks <!-- omit in toc -->
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Go Report Card](https://goreportcard.com/badge/github.com/padok-team/tfautomv)](https://goreportcard.com/report/github.com/padok-team/tfautomv)
-![tests-passing](https://github.com/padok-team/tfautomv/actions/workflows/ci.yml/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/busser/tfautomv)](https://goreportcard.com/report/github.com/busser/tfautomv)
+![tests-passing](https://github.com/busser/tfautomv/actions/workflows/ci.yml/badge.svg)
 
 When refactoring a Terraform codebase, you often need to write [`moved` blocks](https://www.terraform.io/language/modules/develop/refactoring#moved-block-syntax). This can be tedious. Let
 `tfautomv` do it for you.
@@ -37,15 +37,15 @@ This demo illustrates tfautomv's core features:
 
 ## Installation
 
-See [Getting started / Installation](https://padok-team.github.io/tfautomv/getting-started/installation/)
+See [Getting started / Installation](https://busser.github.io/tfautomv/getting-started/installation/)
 for instructions.
 
 ## Usage
 
-See [Getting started / Tutorial](https://padok-team.github.io/tfautomv/getting-started/tutorial/)
+See [Getting started / Tutorial](https://busser.github.io/tfautomv/getting-started/tutorial/)
 for a hands-on guided introduction de tfautomv.
 
-See [Usage](https://padok-team.github.io/tfautomv/usage/) for a list of
+See [Usage](https://busser.github.io/tfautomv/usage/) for a list of
 tfautomv's features.
 
 The following versions of Terraform are supported:
@@ -55,7 +55,7 @@ The following versions of Terraform are supported:
 
 ## How it works
 
-See [Design](https://padok-team.github.io/tfautomv/design/) for details on how tfautomv works under the hood.
+See [Design](https://busser.github.io/tfautomv/design/) for details on how tfautomv works under the hood.
 
 ## Thanks
 

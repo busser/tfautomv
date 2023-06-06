@@ -3,7 +3,7 @@ package flatmap_test
 import (
 	"testing"
 
-	"github.com/padok-team/tfautomv/internal/flatmap"
+	"github.com/busser/tfautomv/internal/flatmap"
 
 	"github.com/google/go-cmp/cmp"
 )
