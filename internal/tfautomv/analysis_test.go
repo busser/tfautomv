@@ -6,7 +6,7 @@ import (
 
 	tfjson "github.com/hashicorp/terraform-json"
 
-	"github.com/padok-team/tfautomv/internal/slices"
+	"github.com/busser/tfautomv/internal/slices"
 )
 
 type dummyResource struct {

@@ -3,9 +3,9 @@ package tfautomv
 import (
 	tfjson "github.com/hashicorp/terraform-json"
 
-	"github.com/padok-team/tfautomv/internal/flatmap"
-	"github.com/padok-team/tfautomv/internal/slices"
-	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
+	"github.com/busser/tfautomv/internal/flatmap"
+	"github.com/busser/tfautomv/internal/slices"
+	"github.com/busser/tfautomv/internal/tfautomv/ignore"
 )
 
 // Analysis of resources planned for creation or destruction by Terraform and

@@ -5,13 +5,13 @@ set -e
 usage() {
   this=$1
   cat <<EOF
-$this: download go binaries for padok-team/tfautomv
+$this: download go binaries for busser/tfautomv
 
 Usage: $this [-b] bindir [-d] [tag]
   -b sets bindir or installation directory, Defaults to /usr/local/bin
   -d turns on debug logging
    [tag] is a tag from
-   https://github.com/padok-team/tfautomv/releases
+   https://github.com/busser/tfautomv/releases
    If tag is missing, then the latest will be used.
 
 EOF
@@ -339,7 +339,7 @@ End of functions from https://github.com/client9/shlib
 EOF
 
 PROJECT_NAME="tfautomv"
-OWNER=padok-team
+OWNER=busser
 REPO="tfautomv"
 BINARY=tfautomv
 FORMAT=tar.gz
