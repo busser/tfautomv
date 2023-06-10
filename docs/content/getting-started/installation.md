@@ -13,7 +13,7 @@ Follow any of the instructions below.
 ### Pre-compiled binary
 
 ```bash
-brew install padok-team/tap/tfautomv
+brew install busser/tap/tfautomv
 ```
 
 _This formula is maintained by the core tfautomv team. It is updated
@@ -24,7 +24,7 @@ automatically after every release._
 ### Pre-compiled binary
 
 ```bash
-curl -L https://raw.githubusercontent.com/padok-team/tfautomv/main/install.sh | bash
+curl -L https://raw.githubusercontent.com/busser/tfautomv/main/install.sh | bash
 ```
 
 _This script installs the latest release by default._
@@ -56,14 +56,14 @@ maintained by a member of the community._
 
 {{< hint info >}}
 
-The tfautomv team is [open to requests](https://github.com/padok-team/tfautomv/issues)
+The tfautomv team is [open to requests](https://github.com/busser/tfautomv/issues)
 of other installation methods.
 
 {{< /hint >}}
 
 ### Pre-compiled binary
 
-On the Github repository's [Releases page](https://github.com/padok-team/tfautomv/releases),
+On the Github repository's [Releases page](https://github.com/busser/tfautomv/releases),
 download the binary that matches your workstation's OS and CPU architecture.
 
 Put the binary in a directory present in your system's `PATH` environment
@@ -76,7 +76,7 @@ You must have Go 1.18+ installed to compile tfautomv.
 Clone the repository and build the binary:
 
 ```bash
-git clone https://github.com/padok-team/tfautomv
+git clone https://github.com/busser/tfautomv
 cd tfautomv
 make build
 ```

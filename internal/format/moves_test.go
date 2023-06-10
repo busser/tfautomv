@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/padok-team/tfautomv/internal/terraform"
+	"github.com/busser/tfautomv/internal/terraform"
 )
 
 func TestMoves(t *testing.T) {

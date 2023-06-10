@@ -34,11 +34,11 @@ release:
   prerelease: auto
 brews:
   - name: tfautomv
-    homepage: https://github.com/padok-team/tfautomv
+    homepage: https://github.com/busser/tfautomv
     description: Generate Terraform moved blocks automatically for painless refactoring
     license: Apache-2.0
     tap:
-      owner: padok-team
+      owner: busser
       name: homebrew-tap
     install: |
       bin.install "tfautomv"
@@ -46,7 +46,7 @@ brews:
       system "#{bin}/tfautomv -version"
 aurs:
   - name: tfautomv-bin
-    homepage: https://github.com/padok-team/tfautomv
+    homepage: https://github.com/busser/tfautomv
     description: Generate Terraform moved blocks automatically for painless refactoring
     maintainers:
       - Arthur Busser <arthur dot busser at gmail dot com>

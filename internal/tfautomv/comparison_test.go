@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/padok-team/tfautomv/internal/slices"
-	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
+	"github.com/busser/tfautomv/internal/slices"
+	"github.com/busser/tfautomv/internal/tfautomv/ignore"
 )
 
 func TestCompare(t *testing.T) {

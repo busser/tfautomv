@@ -1,6 +1,6 @@
 package tfautomv
 
-import "github.com/padok-team/tfautomv/internal/tfautomv/ignore"
+import "github.com/busser/tfautomv/internal/tfautomv/ignore"
 
 // A Comparison contains a list matching and mismatching attributes between two
 // resources.

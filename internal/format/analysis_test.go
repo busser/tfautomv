@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/padok-team/tfautomv/internal/tfautomv"
+	"github.com/busser/tfautomv/internal/tfautomv"
 )
 
 func TestAnalysis(t *testing.T) {

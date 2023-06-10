@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-exec/tfexec"
 
-	"github.com/padok-team/tfautomv/internal/format"
-	"github.com/padok-team/tfautomv/internal/terraform"
-	"github.com/padok-team/tfautomv/internal/tfautomv"
-	"github.com/padok-team/tfautomv/internal/tfautomv/ignore"
+	"github.com/busser/tfautomv/internal/format"
+	"github.com/busser/tfautomv/internal/terraform"
+	"github.com/busser/tfautomv/internal/tfautomv"
+	"github.com/busser/tfautomv/internal/tfautomv/ignore"
 )
 
 func main() {
