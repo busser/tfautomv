@@ -40,6 +40,7 @@ jobs:
         uses: autero1/action-terragrunt@v1.3.2
         with:
           terragrunt_version: latest
+          token: ${{ secrets.GITHUB_TOKEN }} # to avoid rate limits
       - run: make test-e2e
 
   end-to-end-tests-check:
