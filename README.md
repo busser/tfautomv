@@ -19,9 +19,9 @@ Generate Terraform `moved` blocks automatically.
   - [Generating `terraform state mv` commands](#generating-terraform-state-mv-commands)
   - [Understanding why a resource was not matched](#understanding-why-a-resource-was-not-matched)
   - [Ignoring certain differences](#ignoring-certain-differences)
-    - [Ignoring an attribute entirely](#ignoring-an-attribute-entirely)
-    - [Ignoring whitespace](#ignoring-whitespace)
-    - [Ignoring a prefix](#ignoring-a-prefix)
+    - [The `everything` kind](#the-everything-kind)
+    - [The `whitespace` kind](#the-whitespace-kind)
+    - [The `prefix` kind](#the-prefix-kind)
     - [Referencing nested attributes](#referencing-nested-attributes)
   - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
   - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
@@ -165,22 +165,48 @@ use the `-ignore` flag to ignore certain differences.
 
 ### Ignoring certain differences
 
-Sometimes, `tfautomv` may not be able to match a resource because of a
-difference that you don't care about. In those cases, you can use the `-ignore`
-flag to ignore differences between certain resources' attributes. Differences
-are ignored based on the rules you provide. You can use the `-ignore` flag
-multiple times to provide multiple rules.
+`tfautomv` works by comparing resources Terraform plans to create (those in your
+code) to those Terraform plans to delete (those in your state). Sometimes,
+`tfautomv` may not be able to match two resources together because of a
+difference in a specific attribute, even though the resources are in fact the
+same. This usually happens when the Terraform provider that manages the resource
+has transformed the attribute's value in some way.
 
-_If you have a use case that is not covered by the rules below, please open an
-issue or pull request!_
+In those cases, you can use the `-ignore` flag to ignore specific differences.
+`tfautomv` will ignore differences based on a set of rules that you can
+provide.
 
-#### Ignoring an attribute entirely
+Each rule includes:
 
-Use the `everything` effect to ignore any difference between two values of an
+- A _kind_ that identifies the nature of the difference to ignore
+- A _resource type_ the rule applies to
+- An _attribute_ inside the resource the rule applies to
+- Optionally, additional arguments specific to the class
+
+A rule is written as a colon-separated string:
+
+```plaintext
+<KIND>:<RESOURCE TYPE>:<ATTRIBUTE NAME>[:<KIND ARGUMENTS>]
+```
+
+You can use the `-ignore` flag multiple times to provide multiple rules:
+
+```bash
+tfautomv \
+  -ignore="whitespace:azurerm_api_management_policy:xml_content" \
+  -ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
+```
+
+_If you have a use case that is not covered by existing kinds, please open an
+issue so we can track demand for it._
+
+#### The `everything` kind
+
+Use the `everything` kind to ignore any difference between two values of an
 attribute:
 
 ```bash
-tfautomv -ignore="everything:<RESOURCE TYPE>:<ATTRIBUTE NAME>"
+tfautomv -ignore="everything:<RESOURCE TYPE>:<ATTRIBUTE>"
 ```
 
 For example:
@@ -189,24 +215,50 @@ For example:
 tfautomv -ignore="everything:random_pet:length"
 ```
 
-#### Ignoring whitespace
+#### The `whitespace` kind
 
-Use the `whitespace` effect to ignore differences in whitespace between two
+Use the `whitespace` kind to ignore differences in whitespace between two
 values of an attribute:
 
 ```bash
 tfautomv -ignore="whitespace:<RESOURCE TYPE>:<ATTRIBUTE NAME>"
 ```
 
-For example:
+For example, this rule:
 
 ```bash
 tfautomv -ignore="whitespace:azurerm_api_management_policy:xml_content"
 ```
 
-#### Ignoring a prefix
+will allow these two resources to match:
 
-Use the `prefix` effect to ignore a specific prefix between in one of two values
+```terraform
+# This resource has its XML nicely formatted.
+resource "azurerm_api_management_policy" "foo" {
+  api_management_id = "..."
+
+  xml_content = <<-EOT
+  <policies>
+    <inbound>
+      <cross-domain />
+      <base />
+      <find-and-replace from="xyz" to="abc" />
+    </inbound>
+  </policies>
+  EOT
+}
+
+# This resource has its XML on one line.
+resource "azurerm_api_management_policy" "bar" {
+  api_management_id = "..."
+
+  xml_content = "<policies><inbound><cross-domain /><base /><find-and-replace from=\"xyz\" to=\"abc\" /></inbound></policies>"
+}
+```
+
+#### The `prefix` kind
+
+Use the `prefix` kind to ignore a specific prefix between in one of two values
 of an attribute:
 
 ```bash
@@ -219,13 +271,17 @@ For example:
 tfautomv -ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
 ```
 
+will strip the `b/` prefix from the `bucket` attribute of any
+`google_storage_bucket_iam_member` resources before comparing the attirbute's
+values.
+
 #### Referencing nested attributes
 
 Join parent attributes with child attributes with a `.`:
 
 ```plaintext
-<EFFECT>:<RESOURCE TYPE>:parent_obj.child_field
-<EFFECT>:<RESOURCE TYPE>:parent_list.0
+<KIND>:<RESOURCE TYPE>:parent_obj.child_field
+<KIND>:<RESOURCE TYPE>:parent_list.0
 ```
 
 If using the `-show-analysis` flag, you can see the full path to an attribute in
