@@ -35,6 +35,8 @@ func TestE2E(t *testing.T) {
 
 		skip       bool
 		skipReason string
+
+		minimumVersion *version.Version
 	}{
 		{
 			name:        "same attributes",
@@ -93,9 +95,10 @@ func TestE2E(t *testing.T) {
 			},
 		},
 		{
-			name:        "terraform cloud",
-			workdir:     filepath.Join("testdata", "terraform-cloud"),
-			wantChanges: 0,
+			name:           "terraform cloud",
+			workdir:        filepath.Join("testdata", "terraform-cloud"),
+			wantChanges:    0,
+			minimumVersion: version.Must(version.NewVersion("1.6")),
 		},
 		{
 			name:    "terragrunt",
@@ -137,19 +140,21 @@ func TestE2E(t *testing.T) {
 						t.Skip(tc.skipReason)
 					}
 
-					if outputFormat == "blocks" {
-						tf, err := tfexec.NewTerraform(originalWorkdir, terraformBin)
-						if err != nil {
-							t.Fatal(err)
-						}
-						tfVer, _, err := tf.Version(context.TODO(), false)
-						if err != nil {
-							t.Fatalf("failed to get terraform version: %v", err)
-						}
+					tf, err := tfexec.NewTerraform(originalWorkdir, terraformBin)
+					if err != nil {
+						t.Fatal(err)
+					}
+					tfVer, _, err := tf.Version(context.TODO(), false)
+					if err != nil {
+						t.Fatalf("failed to get terraform version: %v", err)
+					}
 
-						if tfVer.LessThan(version.Must(version.NewVersion("1.1"))) {
-							t.Skip("terraform moves output format is only supported in terraform 1.1 and above")
-						}
+					if tc.minimumVersion != nil && tfVer.LessThan(tc.minimumVersion) {
+						t.Skipf("terraform version %s is too old, need at least %s", tfVer.String(), tc.minimumVersion.String())
+					}
+
+					if outputFormat == "blocks" && tfVer.LessThan(version.Must(version.NewVersion("1.1"))) {
+						t.Skip("terraform moves output format is only supported in terraform 1.1 and above")
 					}
 
 					/*
