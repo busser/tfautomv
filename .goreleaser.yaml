@@ -31,7 +31,7 @@ brews:
     homepage: https://github.com/busser/tfautomv
     description: Generate Terraform moved blocks automatically for painless refactoring
     license: Apache-2.0
-    tap:
+    repository:
       owner: busser
       name: homebrew-tap
     install: |
