@@ -96,8 +96,6 @@ func TestE2E(t *testing.T) {
 			name:        "terraform cloud",
 			workdir:     filepath.Join("testdata", "terraform-cloud"),
 			wantChanges: 0,
-			skip:        true,
-			skipReason:  "tfautomv is currently incompatible with Terraform Cloud workspaces with the \"Remote\" execution mode.\nFor more details, see https://github.com/busser/tfautomv/issues/17",
 		},
 		{
 			name:    "terragrunt",
