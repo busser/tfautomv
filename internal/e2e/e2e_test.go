@@ -218,7 +218,7 @@ func TestE2E(t *testing.T) {
 						Count how many changes remain in Terraform's plan.
 					*/
 
-					tf, err := tfexec.NewTerraform(refactoredWorkdir, terraformBin)
+					tf, err = tfexec.NewTerraform(refactoredWorkdir, terraformBin)
 					if err != nil {
 						t.Fatal(err)
 					}
