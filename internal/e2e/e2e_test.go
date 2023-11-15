@@ -25,9 +25,10 @@ const colorEscapeSequence = "\x1b"
 
 func TestE2E(t *testing.T) {
 	tt := []struct {
-		name    string
-		workdir string
-		args    []string
+		name        string
+		workdir     string
+		args        []string
+		sharedState bool // whether test runs use a shared state
 
 		wantChanges       int
 		wantOutputInclude []string
@@ -97,6 +98,7 @@ func TestE2E(t *testing.T) {
 		{
 			name:           "terraform cloud",
 			workdir:        filepath.Join("testdata", "terraform-cloud"),
+			sharedState:    true,
 			wantChanges:    0,
 			minimumVersion: version.Must(version.NewVersion("1.6")),
 		},
@@ -140,6 +142,10 @@ func TestE2E(t *testing.T) {
 						t.Skip(tc.skipReason)
 					}
 
+					if outputFormat == "commands" && tc.sharedState {
+						t.Skipf("testing terraform state mv commands is not supported with shared state")
+					}
+
 					tf, err := tfexec.NewTerraform(originalWorkdir, terraformBin)
 					if err != nil {
 						t.Fatal(err)
@@ -161,7 +167,7 @@ func TestE2E(t *testing.T) {
 						Create a fresh environment for each test.
 					*/
 
-					setupWorkdir(t, originalWorkdir, refactoredWorkdir, terraformBin)
+					setupWorkdir(t, originalWorkdir, refactoredWorkdir, terraformBin, tc.sharedState)
 
 					args := append(tc.args, fmt.Sprintf("-output=%s", outputFormat))
 
@@ -280,7 +286,7 @@ func buildBinary(t *testing.T) string {
 	return binPath
 }
 
-func setupWorkdir(t *testing.T, originalWorkdir, refactoredWorkdir, terraformBin string) {
+func setupWorkdir(t *testing.T, originalWorkdir, refactoredWorkdir, terraformBin string, dontApplyOriginal bool) {
 	t.Helper()
 
 	filesToRemove := []string{
@@ -300,6 +306,10 @@ func setupWorkdir(t *testing.T, originalWorkdir, refactoredWorkdir, terraformBin
 	}
 	for _, d := range directoriesToRemove {
 		ensureDirectoryRemoved(t, d)
+	}
+
+	if dontApplyOriginal {
+		return
 	}
 
 	original, err := tfexec.NewTerraform(originalWorkdir, terraformBin)
