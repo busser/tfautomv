@@ -30,6 +30,7 @@ jobs:
           - 1.4.7
           - 1.5.7
           - 1.6.4
+    concurrency: end-to-end-tests
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
