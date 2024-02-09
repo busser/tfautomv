@@ -24,12 +24,12 @@ vet:
 ## test: Run unit tests
 .PHONY: test
 test:
-	go test ./...
+	go test ./pkg/... -cover
 
-## test-e2e: Run all tests, including end-to-end tests
+## test-e2e: Run end-to-end tests
 .PHONY: test-e2e
 test-e2e:
-	go test -tags=e2e ./...
+	go test ./test/e2e/... -v
 
 ## release: Release a new version
 .PHONY: release

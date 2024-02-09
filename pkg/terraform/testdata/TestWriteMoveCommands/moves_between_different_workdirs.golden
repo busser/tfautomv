@@ -1,0 +1,5 @@
+terraform -chdir="/path/to/workdir1" state pull > "/path/to/workdir1/.tfautomv.tfstate"
+terraform -chdir="/path/to/workdir2" state pull > "/path/to/workdir2/.tfautomv.tfstate"
+terraform state mv -state="/path/to/workdir1/.tfautomv.tfstate" -state-out="/path/to/workdir2/.tfautomv.tfstate" "aws_instance.foo" "aws_instance.bar"
+terraform -chdir="/path/to/workdir1" state push ".tfautomv.tfstate"
+terraform -chdir="/path/to/workdir2" state push ".tfautomv.tfstate"

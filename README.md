@@ -17,7 +17,9 @@ Generate Terraform `moved` blocks automatically.
 - [Usage](#usage)
   - [Generating `moved` blocks](#generating-moved-blocks)
   - [Generating `terraform state mv` commands](#generating-terraform-state-mv-commands)
-  - [Understanding why a resource was not matched](#understanding-why-a-resource-was-not-matched)
+  - [Finding moves across multiple directories](#finding-moves-across-multiple-directories)
+  - [Skipping the `init` and `refresh` steps](#skipping-the-init-and-refresh-steps)
+  - [Understanding why a resource was not moved](#understanding-why-a-resource-was-not-moved)
   - [Ignoring certain differences](#ignoring-certain-differences)
     - [The `everything` kind](#the-everything-kind)
     - [The `whitespace` kind](#the-whitespace-kind)
@@ -120,18 +122,34 @@ In any directory where you would run `terraform plan`, you can run:
 tfautomv
 ```
 
-This will run `terraform init`, `terraform plan`, and then write `moved` blocks
-to a `moves.tf` file.
+This will run `terraform init`, `terraform refresh`, and `terraform plan`, and
+then write `moved` blocks to a `moves.tf` file.
 
 That's all there is to it!
 
-### Generating `terraform state mv` commands
-
-If you are using a version of Terraform older than v1.1 or don't want to use
-`moved` blocks, you can generate `terraform state mv` commands instead:
+You can also target a specific working directory:
 
 ```bash
-tfautomv -output=commands
+tfautomv ./production
+```
+
+### Generating `terraform state mv` commands
+
+By default, tfautomv writes moves to as `moved` blocks when possible and falls
+back to `terraform state mv` commands when not.
+
+You can force `tfautomv` to write only `moved` blocks with the `--output=moves`
+flag:
+
+```bash
+tfautomv --output=moves
+```
+
+You can force `tfautomv` to write only `terraform state mv` commands with the
+`--output=commands` flag:
+
+```bash
+tfautomv --output=commands
 ```
 
 This will print commands to standard output. You can copy and paste them to a
@@ -140,28 +158,91 @@ terminal to run them manually.
 Alternatively, you can write the commands to a file:
 
 ```bash
-tfautomv -output=commands > moves.sh
+tfautomv --output=commands > moves.sh
 ```
 
 Or pipe them into a shell to run them immediately:
 
 ```bash
-tfautomv -output=commands | sh
+tfautomv --output=commands | sh
 ```
 
-### Understanding why a resource was not matched
-
-If you are not seeing `moved` blocks for a resource you expected to be matched,
-you can run `tfautomv` with the `-show-analysis` flag to get more information:
+The `-o` flag is shorthand for `--output`:
 
 ```bash
-tfautomv -show-analysis
+tfautomv -o commands
 ```
 
-This will print a detailed analysis of why each resource was or was not matched.
+### Finding moves across multiple directories
 
-From there, you can choose to edit your code, write a `moved` block manually, or
-use the `-ignore` flag to ignore certain differences.
+If you have multiple Terraform modules in different directories, you can pass
+those directories to `tfautomv`:
+
+```bash
+tfautomv ./production/main ./production/backup -o commands
+```
+
+This will run `terraform init`, `terraform refresh`, and `terraform plan` in
+each directory, and then write `terraform state mv` commands to standard output.
+These commands will move resources within and across directories as needed.
+
+Terraform does not natively support moving resources across directories. To
+achieve this, `tfautomv` will output commands that pull copies of each
+directory's state, perform the moves, and then push the new state back to the
+directory's state backend.
+
+You can pass as many directories as you want to `tfautomv`.
+
+This is only compatible with the `commands` output format. Terraform's `moved`
+block syntax does not support moving resources across directories.
+
+### Skipping the `init` and `refresh` steps
+
+By default, `tfautomv` runs Terraform's `init`, `refresh`, and `plan` steps.
+To save time, you can skip the `init` or `refresh` steps with the `--skip-init`
+and `--skip-refresh` flags:
+
+```bash
+tfautomv --skip-init --skip-refresh
+```
+
+The `-s` flag is shorthand for `--skip-init` and `-S` for `--skip-refresh:
+
+```bash
+tfautomv -sS
+```
+
+### Understanding why a resource was not moved
+
+If you are not seeing a `moved` block for a resource you expected to be moved,
+you can increase `tfautomv`'s verbosity with the `-v` flag to get more
+information:
+
+```bash
+tfautomv -v
+```
+
+The default verbosity level is 0. You can increase the verbosity up to 3 by
+repeating the `-v` flag:
+
+```bash
+tfautomv -vvv
+```
+
+Alternatively, you can specify a specific verbosity level with the `--verbosity`
+flag:
+
+```bash
+tfautomv --verbosity=2
+```
+
+Based on why the resource was not moved, you can choose to edit your code,
+write a `moved` block manually, or use the `-ignore` flag to ignore certain
+differences.
+
+|                     level 0 (default)                     |                      level 1 (`-v`)                       |                      level 2 (`-vv`)                      |                     level 3 (`-vvv`)                      |
+| :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: |
+| ![verbosity level 0](./docs/images/verbosity/level-0.png) | ![verbosity level 1](./docs/images/verbosity/level-1.png) | ![verbosity level 2](./docs/images/verbosity/level-2.png) | ![verbosity level 3](./docs/images/verbosity/level-3.png) |
 
 ### Ignoring certain differences
 
@@ -189,12 +270,12 @@ A rule is written as a colon-separated string:
 <KIND>:<RESOURCE TYPE>:<ATTRIBUTE NAME>[:<KIND ARGUMENTS>]
 ```
 
-You can use the `-ignore` flag multiple times to provide multiple rules:
+You can use the `--ignore` flag multiple times to provide multiple rules:
 
 ```bash
 tfautomv \
-  -ignore="whitespace:azurerm_api_management_policy:xml_content" \
-  -ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
+  --ignore="whitespace:azurerm_api_management_policy:xml_content" \
+  --ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
 ```
 
 _If you have a use case that is not covered by existing kinds, please open an
@@ -206,13 +287,13 @@ Use the `everything` kind to ignore any difference between two values of an
 attribute:
 
 ```bash
-tfautomv -ignore="everything:<RESOURCE TYPE>:<ATTRIBUTE>"
+tfautomv --ignore="everything:<RESOURCE TYPE>:<ATTRIBUTE>"
 ```
 
 For example:
 
 ```bash
-tfautomv -ignore="everything:random_pet:length"
+tfautomv --ignore="everything:random_pet:length"
 ```
 
 #### The `whitespace` kind
@@ -221,13 +302,13 @@ Use the `whitespace` kind to ignore differences in whitespace between two
 values of an attribute:
 
 ```bash
-tfautomv -ignore="whitespace:<RESOURCE TYPE>:<ATTRIBUTE NAME>"
+tfautomv --ignore="whitespace:<RESOURCE TYPE>:<ATTRIBUTE NAME>"
 ```
 
 For example, this rule:
 
 ```bash
-tfautomv -ignore="whitespace:azurerm_api_management_policy:xml_content"
+tfautomv --ignore="whitespace:azurerm_api_management_policy:xml_content"
 ```
 
 will allow these two resources to match:
@@ -262,13 +343,13 @@ Use the `prefix` kind to ignore a specific prefix between in one of two values
 of an attribute:
 
 ```bash
-tfautomv -ignore="prefix:<RESOURCE TYPE>:<ATTRIBUTE NAME>:<PREFIX>"
+tfautomv --ignore="prefix:<RESOURCE TYPE>:<ATTRIBUTE NAME>:<PREFIX>"
 ```
 
 For example:
 
 ```bash
-tfautomv -ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
+tfautomv --ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
 ```
 
 will strip the `b/` prefix from the `bucket` attribute of any
@@ -284,8 +365,12 @@ Join parent attributes with child attributes with a `.`:
 <KIND>:<RESOURCE TYPE>:parent_list.0
 ```
 
-If using the `-show-analysis` flag, you can see the full path to an attribute in
-the analysis output.
+To get an attribute's full path, increase the verbosity level with the `-v`
+flag:
+
+```bash
+tfautomv -vvv
+```
 
 ### Passing additional arguments to Terraform
 
@@ -298,32 +383,33 @@ For example, in order to use a file of variables during Terraform's plan:
 TF_CLI_ARGS_plan="-var-file=production.tfvars" tfautomv
 ```
 
-Or to skip Terraform's refresh and speed up the planning step:
-
-```bash
-TF_CLI_ARGS_plan="-refresh=false" tfautomv
-```
-
 ### Using Terragrunt instead of Terraform
 
 You can tell `tfautomv` to use the Terragrunt CLI instead of the Terraform CLI
-with the `-terraform-bin` flag:
+with the `--terraform-bin` flag:
 
 ```bash
-tfautomv -terraform-bin=terragrunt
+tfautomv --terraform-bin=terragrunt
 ```
 
 This also works with any other executable that has an `init` and `plan` command.
 
 ### Disabling colors in output
 
-Add the `-no-color` flag to your `tfautomv` command to disable output
+Add the `--no-color` flag to your `tfautomv` command to disable output
 formatting like colors, bold text, etc.
 
 For example:
 
 ```bash
-tfautomv -no-color
+tfautomv --no-color
+```
+
+Alternatively, you can achieve the same result by setting the `NO_COLOR`
+environment variable to any value:
+
+```bash
+NO_COLOR=true tfautomv
 ```
 
 ## Thanks
