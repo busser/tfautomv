@@ -1,3 +1,0 @@
-[32m╷[0m[0m
-[32m│[0m[0m [1m[32mDone: [0msimple message
-[32m╵[0m[0m

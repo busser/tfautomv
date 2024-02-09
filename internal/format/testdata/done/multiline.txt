@@ -1,5 +1,0 @@
-[32m╷[0m[0m
-[32m│[0m[0m [1m[32mDone: [0mmultiple messages:
-[32m│[0m[0m   - first message
-[32m│[0m[0m   - second message
-[32m╵[0m[0m

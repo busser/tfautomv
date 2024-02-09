@@ -1,0 +1,51 @@
+[36m[1m┌─[0m [36m[1mSummary[0m
+[36m[1m│[0m tfautomv made [1m[35m30 comparisons[0m and found [1m[32m3 moves[0m
+[36m[1m│[0m
+[36m[1m│[0m the following symbols are used below:
+[36m[1m│[0m   [32m[1m+[0m the resource Terraform plans to [32m[1mcreate[0m has this attribute[0m
+[36m[1m│[0m   [31m[1m-[0m the resource Terraform plans to [31m[1mdelete[0m has this attribute[0m
+[36m[1m│[0m   [33m[1m~[0m differences in this attribute are [33m[1mignored[0m because of a rule[0m
+[36m[1m│[0m
+[36m[1m│[0m [1m[32m1 move[0m within [1mdemo/module-a[0m
+[36m[1m│[0m [32m[1m├─[0m
+[36m[1m│[0m [32m[1m│[0m from [1mrandom_pet.alpha[0m
+[36m[1m│[0m [32m[1m│[0m to   [1mrandom_pet.alice[0m
+[36m[1m│[0m [32m[1m└─[0m[0m
+[36m[1m│[0m
+[36m[1m│[0m [1m[32m2 moves[0m from [1mdemo/module-a[0m and [1mdemo/module-b[0m
+[36m[1m│[0m [32m[1m├─[0m
+[36m[1m│[0m [32m[1m│[0m from [1mrandom_pet.bravo[0m
+[36m[1m│[0m [32m[1m│[0m to   [1mrandom_pet.bob[0m
+[36m[1m│[0m [32m[1m├─[0m
+[36m[1m│[0m [32m[1m│[0m from [1mrandom_pet.charlie[0m
+[36m[1m│[0m [32m[1m│[0m to   [1mrandom_pet.carol[0m
+[36m[1m│[0m [32m[1m│[0m
+[36m[1m│[0m [32m[1m│[0m [33m[1m~[0m length
+[36m[1m│[0m [32m[1m└─[0m[0m
+[36m[1m│[0m
+[36m[1m│[0m [1m[35m2 matches[0m for [1mrandom_pet.delta[0m ([31m[1mdelete[0m)[0m in [1mdemo/module-a[0m
+[36m[1m│[0m [35m[1m├─[0m
+[36m[1m│[0m [35m[1m│[0m [1mrandom_pet.daniel[0m ([32m[1mcreate[0m)[0m in [1mdemo/module-b[0m
+[36m[1m│[0m [35m[1m├─[0m
+[36m[1m│[0m [35m[1m│[0m [1mrandom_pet.david[0m ([32m[1mcreate[0m)[0m in [1mdemo/module-b[0m
+[36m[1m│[0m [35m[1m│[0m
+[36m[1m│[0m [35m[1m│[0m [33m[1m~[0m length
+[36m[1m│[0m [35m[1m│[0m [33m[1m~[0m separator
+[36m[1m│[0m [35m[1m└─[0m[0m
+[36m[1m│[0m
+[36m[1m│[0m [1m[31m0 matches[0m for [1mrandom_pet.felix[0m ([32m[1mcreate[0m)[0m in [1mdemo/module-b[0m
+[36m[1m│[0m [31m[1m├─[0m
+[36m[1m│[0m [31m[1m│[0m [1mrandom_pet.echo[0m ([31m[1mdelete[0m)[0m in [1mdemo/module-a[0m
+[36m[1m│[0m [31m[1m│[0m
+[36m[1m│[0m [31m[1m│[0m [32m[1m+[0m prefix = "foxtrot"
+[36m[1m│[0m [31m[1m│[0m [31m[1m-[0m prefix = "echo"
+[36m[1m│[0m [31m[1m└─[0m[0m
+[36m[1m│[0m
+[36m[1m│[0m [1m[31m0 matches[0m for [1mrandom_pet.echo[0m ([31m[1mdelete[0m)[0m in [1mdemo/module-a[0m
+[36m[1m│[0m [31m[1m├─[0m
+[36m[1m│[0m [31m[1m│[0m [1mrandom_pet.felix[0m ([32m[1mcreate[0m)[0m in [1mdemo/module-b[0m
+[36m[1m│[0m [31m[1m│[0m
+[36m[1m│[0m [31m[1m│[0m [32m[1m+[0m prefix = "foxtrot"
+[36m[1m│[0m [31m[1m│[0m [31m[1m-[0m prefix = "echo"
+[36m[1m│[0m [31m[1m└─[0m[0m
+[36m[1m└─[0m[0m

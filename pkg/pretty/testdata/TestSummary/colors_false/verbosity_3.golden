@@ -1,0 +1,51 @@
+┌─ Summary
+│ tfautomv made 30 comparisons and found 3 moves
+│
+│ the following symbols are used below:
+│   + the resource Terraform plans to create has this attribute
+│   - the resource Terraform plans to delete has this attribute
+│   ~ differences in this attribute are ignored because of a rule
+│
+│ 1 move within demo/module-a
+│ ├─
+│ │ from random_pet.alpha
+│ │ to   random_pet.alice
+│ └─
+│
+│ 2 moves from demo/module-a and demo/module-b
+│ ├─
+│ │ from random_pet.bravo
+│ │ to   random_pet.bob
+│ ├─
+│ │ from random_pet.charlie
+│ │ to   random_pet.carol
+│ │
+│ │ ~ length
+│ └─
+│
+│ 2 matches for random_pet.delta (delete) in demo/module-a
+│ ├─
+│ │ random_pet.daniel (create) in demo/module-b
+│ ├─
+│ │ random_pet.david (create) in demo/module-b
+│ │
+│ │ ~ length
+│ │ ~ separator
+│ └─
+│
+│ 0 matches for random_pet.felix (create) in demo/module-b
+│ ├─
+│ │ random_pet.echo (delete) in demo/module-a
+│ │
+│ │ + prefix = "foxtrot"
+│ │ - prefix = "echo"
+│ └─
+│
+│ 0 matches for random_pet.echo (delete) in demo/module-a
+│ ├─
+│ │ random_pet.felix (create) in demo/module-b
+│ │
+│ │ + prefix = "foxtrot"
+│ │ - prefix = "echo"
+│ └─
+└─

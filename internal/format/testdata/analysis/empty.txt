@@ -1,5 +1,0 @@
-[36m╷[0m[0m
-[36m│[0m[0m [1m[36mAnalysis[0m
-[36m│[0m[0m
-[36m│[0m[0m No resources are planned for creation.
-[36m╵[0m[0m
