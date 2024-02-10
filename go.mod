@@ -6,7 +6,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-exec v0.20.0
-	github.com/hashicorp/terraform-json v0.19.0
+	github.com/hashicorp/terraform-json v0.21.0
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
