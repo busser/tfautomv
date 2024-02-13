@@ -31,6 +31,11 @@ var tfautomvVersion string
 func run() error {
 	parseFlags()
 
+	workdirs := flag.Args()
+	if len(workdirs) == 0 {
+		workdirs = []string{"."}
+	}
+
 	if noColor {
 		pretty.DisableColors()
 	}
@@ -66,6 +71,11 @@ func run() error {
 		return fmt.Errorf("Terraform version %s does not support moved blocks", tfVersion)
 	}
 
+	crossModuleMovesSupported := tfVersion.GreaterThanOrEqual(version.Must(version.NewSemver("0.14.0")))
+	if len(workdirs) > 1 && !crossModuleMovesSupported {
+		return fmt.Errorf("Terraform version %s does not support moves across modules", tfVersion)
+	}
+
 	/*
 	 * Step 1: Parse user-provided rules
 	 *
@@ -88,11 +98,6 @@ func run() error {
 	 *
 	 * Run `terraform plan` for each working directory provided by the user.
 	 */
-
-	workdirs := flag.Args()
-	if len(workdirs) == 0 {
-		workdirs = []string{"."}
-	}
 
 	planOptions := []terraform.Option{
 		terraform.WithTerraformBin(terraformBin),

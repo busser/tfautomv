@@ -265,6 +265,11 @@ resource "random_pet" "refactored_third" {
 }
 
 func TestE2E_MultipleModules(t *testing.T) {
+	tfVersion := terraformVersion(t)
+	if tfVersion.LessThan(version.Must(version.NewVersion("0.14"))) {
+		t.Skip("tfautomv requires Terraform 0.14 or later to run this test")
+	}
+
 	workdirA := t.TempDir()
 	codePathA := filepath.Join(workdirA, "main.tf")
 

@@ -55,8 +55,11 @@ Here's a quick view of what `tfautomv` does:
 `tfautomv` uses the Terraform CLI command under the hood. This allows it to work
 with any Terraform version reliably.
 
-You will need Terraform v1.1 or above to generate `moved` blocks. Or Terraform
-v0.13 or above to generate `terraform state mv` commands.
+Certain features require specific versions of Terraform:
+
+- `moved` blocks require Terraform v1.1 or above
+- cross-module `terraform state mv` commands require Terraform v0.14 or above
+- single-module `terraform state mv` commands require Terraform v0.13 or above
 
 ## Installation
 
