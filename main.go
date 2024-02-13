@@ -290,19 +290,26 @@ func writeMovedBlocks(moves []terraform.Move) error {
 		return nil
 	}
 
-	movesFilePath := filepath.Join(moves[0].FromWorkdir, "moves.tf")
-	movesFile, err := os.OpenFile(movesFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open %q: %w", movesFilePath, err)
+	movesByWorkdir := make(map[string][]terraform.Move)
+	for _, m := range moves {
+		movesByWorkdir[m.FromWorkdir] = append(movesByWorkdir[m.FromWorkdir], m)
 	}
 
-	err = terraform.WriteMovedBlocks(movesFile, moves)
-	if err != nil {
-		return fmt.Errorf("failed to write moved blocks: %w", err)
-	}
+	for workdir, moves := range movesByWorkdir {
+		movesFilePath := filepath.Join(workdir, "moves.tf")
+		movesFile, err := os.OpenFile(movesFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open %q: %w", movesFilePath, err)
+		}
 
-	os.Stderr.WriteString(pretty.Colorf("%s written to [bold][green]%s", pretty.StyledNumMoves(len(moves)), movesFilePath))
-	os.Stderr.WriteString("\n")
+		err = terraform.WriteMovedBlocks(movesFile, moves)
+		if err != nil {
+			return fmt.Errorf("failed to write moved blocks: %w", err)
+		}
+
+		os.Stderr.WriteString(pretty.Colorf("%s written to [bold][green]%s", pretty.StyledNumMoves(len(moves)), movesFilePath))
+		os.Stderr.WriteString("\n")
+	}
 
 	return nil
 }

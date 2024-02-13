@@ -143,7 +143,7 @@ func terragruntPlan(t *testing.T, workdir string) *tfjson.Plan {
 	return runPlan(t, workdir, terragruntBin)
 }
 
-func runTfautomv(t *testing.T, workdir string, args ...string) {
+func runTfautomv(t *testing.T, workdir string, args []string) {
 	t.Helper()
 
 	tfautomvBinAbsPath, err := filepath.Abs(tfautomvBin)

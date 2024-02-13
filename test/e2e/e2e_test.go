@@ -37,9 +37,9 @@ resource "random_pet" "refactored_third" {
 	writeCode(t, codePath, originalCode)
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir)
+	runTfautomv(t, workdir, nil)
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
-	assert.Equal(t, changeCount, 0)
+	assert.Equal(t, 0, changeCount)
 }
 
 func TestE2E_DependencyAnalysis(t *testing.T) {
@@ -99,9 +99,9 @@ resource "random_pet" "second" {
 	writeCode(t, codePath, originalCode)
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir)
+	runTfautomv(t, workdir, nil)
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
-	assert.Equal(t, changeCount, 0)
+	assert.Equal(t, 0, changeCount)
 }
 
 func TestE2E_MultipleTypes(t *testing.T) {
@@ -119,9 +119,9 @@ resource "random_uuid" "refactored" {}`
 	writeCode(t, codePath, originalCode)
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir)
+	runTfautomv(t, workdir, nil)
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
-	assert.Equal(t, changeCount, 0)
+	assert.Equal(t, 0, changeCount)
 }
 
 func TestE2E_DifferentAttributes(t *testing.T) {
@@ -142,13 +142,13 @@ resource "random_pet" "refactored" {
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
 
-	runTfautomv(t, workdir)
+	runTfautomv(t, workdir, nil)
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
-	assert.Equal(t, changeCount, 2)
+	assert.Equal(t, 2, changeCount)
 
-	runTfautomv(t, workdir, "--ignore=everything:random_pet:length")
+	runTfautomv(t, workdir, []string{"--ignore=everything:random_pet:length"})
 	changeCount = countPlannedChanges(terraformPlan(t, workdir))
-	assert.Equal(t, changeCount, 1)
+	assert.Equal(t, 1, changeCount)
 }
 
 func TestE2E_Terragrunt(t *testing.T) {
@@ -199,9 +199,9 @@ inputs = {
 	writeCode(t, terragruntConfigPath, terragruntConfig)
 	terragruntInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir, "--terraform-bin=terragrunt")
+	runTfautomv(t, workdir, []string{"--terraform-bin=terragrunt"})
 	changeCount := countPlannedChanges(terragruntPlan(t, workdir))
-	assert.Equal(t, changeCount, 0)
+	assert.Equal(t, 0, changeCount)
 }
 
 func TestE2E_TerraformCloud(t *testing.T) {
@@ -259,7 +259,90 @@ resource "random_pet" "refactored_third" {
 	writeCode(t, codePath, originalCode)
 	terraformInit(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir)
+	runTfautomv(t, workdir, nil)
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
-	assert.Equal(t, changeCount, 0)
+	assert.Equal(t, 0, changeCount)
+}
+
+func TestE2E_MultipleModules(t *testing.T) {
+	workdirA := t.TempDir()
+	codePathA := filepath.Join(workdirA, "main.tf")
+
+	workdirB := t.TempDir()
+	codePathB := filepath.Join(workdirB, "main.tf")
+
+	workdirC := t.TempDir()
+	codePathC := filepath.Join(workdirC, "main.tf")
+
+	originalCodeA := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+`
+	originalCodeB := `
+resource "random_pet" "original_third" {
+	length = 3
+}
+resource "random_pet" "original_fourth" {
+	length = 4
+}
+`
+	originalCodeC := `
+resource "random_pet" "original_fifth" {
+	length = 5
+}
+resource "random_pet" "original_sixth" {
+	length = 6
+}
+`
+
+	refactoredCodeA := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_fourth" {
+	length = 4
+}
+`
+	refactoredCodeB := `
+resource "random_pet" "refactored_third" {
+	length = 3
+}
+resource "random_pet" "refactored_sixth" {
+	length = 6
+}
+`
+	refactoredCodeC := `
+resource "random_pet" "refactored_fifth" {
+	length = 5
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+`
+
+	writeCode(t, codePathA, originalCodeA)
+	writeCode(t, codePathB, originalCodeB)
+	writeCode(t, codePathC, originalCodeC)
+
+	terraformInitAndApply(t, workdirA)
+	terraformInitAndApply(t, workdirB)
+	terraformInitAndApply(t, workdirC)
+
+	writeCode(t, codePathA, refactoredCodeA)
+	writeCode(t, codePathB, refactoredCodeB)
+	writeCode(t, codePathC, refactoredCodeC)
+
+	// We don't care where we run tfautomv from, since we explicitly pass the
+	// workdirs as arguments.
+	runTfautomv(t, t.TempDir(), []string{workdirA, workdirB, workdirC})
+
+	changeCount := 0
+	changeCount += countPlannedChanges(terraformPlan(t, workdirA))
+	changeCount += countPlannedChanges(terraformPlan(t, workdirB))
+	changeCount += countPlannedChanges(terraformPlan(t, workdirC))
+	assert.Equal(t, 0, changeCount)
 }
