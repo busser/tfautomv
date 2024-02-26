@@ -76,9 +76,21 @@ func TestWriteMovedBlocks(t *testing.T) {
 
 func TestWriteMoveCommands(t *testing.T) {
 	tests := []struct {
-		name  string
-		moves []Move
+		name    string
+		moves   []Move
+		options []Option
 	}{
+		{
+			name: "moves within current workdir",
+			moves: []Move{
+				{
+					FromWorkdir: ".",
+					ToWorkdir:   ".",
+					FromAddress: "aws_instance.foo",
+					ToAddress:   "aws_instance.bar",
+				},
+			},
+		},
 		{
 			name: "moves within same workdir",
 			moves: []Move{
@@ -135,13 +147,27 @@ func TestWriteMoveCommands(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "non-default terraform binary",
+			moves: []Move{
+				{
+					FromWorkdir: "/path/to/workdir1",
+					ToWorkdir:   "/path/to/workdir2",
+					FromAddress: "aws_instance.foo",
+					ToAddress:   "aws_instance.bar",
+				},
+			},
+			options: []Option{
+				WithTerraformBin("terragrunt"),
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := new(bytes.Buffer)
 
-			err := WriteMoveCommands(buf, tt.moves)
+			err := WriteMoveCommands(buf, tt.moves, tt.options...)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}

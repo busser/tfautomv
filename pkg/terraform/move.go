@@ -74,7 +74,16 @@ func WriteMovedBlocks(w io.Writer, moves []Move) error {
 // user to know exactly where their state is stored. The files are not deleted
 // automatically, in case the user wants to use them (to revert any changes, for
 // instance).
-func WriteMoveCommands(w io.Writer, moves []Move) error {
+func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
+	var settings settings
+
+	settings.apply(append(defaultOptions(), opts...))
+
+	err := settings.validate()
+	if err != nil {
+		return fmt.Errorf("invalid options: %w", err)
+	}
+
 	var commands []string
 
 	// Start with moves within the same module.
@@ -83,12 +92,16 @@ func WriteMoveCommands(w io.Writer, moves []Move) error {
 		if m.FromWorkdir == m.ToWorkdir {
 			var chdirFlag string
 			if m.FromWorkdir != "." {
-				chdirFlag = fmt.Sprintf("-chdir=%q", m.FromWorkdir)
+				chdirFlag = fmt.Sprintf(" -chdir=%q", m.FromWorkdir)
 			}
 
 			commands = append(commands,
-				fmt.Sprintf("terraform %s state mv %q %q",
-					chdirFlag, m.FromAddress, m.ToAddress),
+				fmt.Sprintf("%s%s state mv %q %q",
+					settings.terraformBin,
+					chdirFlag,
+					m.FromAddress,
+					m.ToAddress,
+				),
 			)
 		}
 	}
@@ -109,7 +122,8 @@ func WriteMoveCommands(w io.Writer, moves []Move) error {
 
 	for _, workdir := range workdirs {
 		commands = append(commands,
-			fmt.Sprintf("terraform -chdir=%q state pull > %q",
+			fmt.Sprintf("%s -chdir=%q state pull > %q",
+				settings.terraformBin,
 				workdir,
 				filepath.Join(workdir, localCopyFileName),
 			),
@@ -125,7 +139,8 @@ func WriteMoveCommands(w io.Writer, moves []Move) error {
 		}
 
 		commands = append(commands,
-			fmt.Sprintf("terraform state mv -state=%q -state-out=%q %q %q",
+			fmt.Sprintf("%s state mv -state=%q -state-out=%q %q %q",
+				settings.terraformBin,
 				filepath.Join(move.FromWorkdir, localCopyFileName),
 				filepath.Join(move.ToWorkdir, localCopyFileName),
 				move.FromAddress,
@@ -138,7 +153,8 @@ func WriteMoveCommands(w io.Writer, moves []Move) error {
 
 	for _, workdir := range workdirs {
 		commands = append(commands,
-			fmt.Sprintf("terraform -chdir=%q state push %q",
+			fmt.Sprintf("%s -chdir=%q state push %q",
+				settings.terraformBin,
 				workdir,
 				localCopyFileName,
 			),
@@ -147,7 +163,7 @@ func WriteMoveCommands(w io.Writer, moves []Move) error {
 
 	// And we're done.
 
-	_, err := fmt.Fprintln(w, strings.Join(commands, "\n"))
+	_, err = fmt.Fprintln(w, strings.Join(commands, "\n"))
 
 	return err
 }

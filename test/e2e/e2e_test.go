@@ -37,7 +37,86 @@ resource "random_pet" "refactored_third" {
 	writeCode(t, codePath, originalCode)
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir, nil)
+
+	runTfautomvPipeSh(t, workdir, nil)
+
+	changeCount := countPlannedChanges(terraformPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+func TestE2E_OutputBlocks(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+resource "random_pet" "original_third" {
+	length = 3
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	length = 3
+}`
+
+	writeCode(t, codePath, originalCode)
+	terraformInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	commands := runTfautomv(t, workdir, []string{"--output=blocks"})
+	assert.Empty(t, commands)
+	assert.FileExists(t, filepath.Join(workdir, "moves.tf"))
+
+	changeCount := countPlannedChanges(terraformPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+func TestE2E_OutputCommands(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+resource "random_pet" "original_third" {
+	length = 3
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	length = 3
+}`
+
+	writeCode(t, codePath, originalCode)
+	terraformInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	commands := runTfautomv(t, workdir, []string{"--output=commands"})
+	assert.NotEmpty(t, commands)
+	assert.NoFileExists(t, filepath.Join(workdir, "moves.tf"))
+	runShellCommands(t, workdir, commands)
+
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
 	assert.Equal(t, 0, changeCount)
 }
@@ -99,7 +178,9 @@ resource "random_pet" "second" {
 	writeCode(t, codePath, originalCode)
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir, nil)
+
+	runTfautomvPipeSh(t, workdir, nil)
+
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
 	assert.Equal(t, 0, changeCount)
 }
@@ -119,7 +200,9 @@ resource "random_uuid" "refactored" {}`
 	writeCode(t, codePath, originalCode)
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir, nil)
+
+	runTfautomvPipeSh(t, workdir, nil)
+
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
 	assert.Equal(t, 0, changeCount)
 }
@@ -142,11 +225,11 @@ resource "random_pet" "refactored" {
 	terraformInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
 
-	runTfautomv(t, workdir, nil)
+	runTfautomvPipeSh(t, workdir, nil)
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
 	assert.Equal(t, 2, changeCount)
 
-	runTfautomv(t, workdir, []string{"--ignore=everything:random_pet:length"})
+	runTfautomvPipeSh(t, workdir, []string{"--ignore=everything:random_pet:length"})
 	changeCount = countPlannedChanges(terraformPlan(t, workdir))
 	assert.Equal(t, 1, changeCount)
 }
@@ -199,7 +282,82 @@ inputs = {
 	writeCode(t, terragruntConfigPath, terragruntConfig)
 	terragruntInitAndApply(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir, []string{"--terraform-bin=terragrunt"})
+
+	runTfautomvPipeSh(t, workdir, []string{"--terraform-bin=terragrunt"})
+
+	changeCount := countPlannedChanges(terragruntPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+func TestE2E_TerragruntOutputCommands(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+	terragruntConfigPath := filepath.Join(workdir, "terragrunt.hcl")
+
+	originalCode := `
+variable "prefix" {
+	type = string
+}
+resource "random_pet" "original_first" {
+	prefix = var.prefix
+	length = 1
+}
+resource "random_pet" "original_second" {
+	prefix = var.prefix
+	length = 2
+}
+resource "random_pet" "original_third" {
+	prefix = var.prefix
+	length = 3
+}`
+
+	refactoredCode := `
+variable "prefix" {
+	type = string
+}
+resource "random_pet" "refactored_first" {
+	prefix = var.prefix
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	prefix = var.prefix
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	prefix = var.prefix
+	length = 3
+}`
+
+	terragruntConfig := `
+inputs = {
+	prefix = "my-"
+}
+generate "backend" {
+	path      = "backend.tf"
+	if_exists = "overwrite"
+	contents = <<EOF
+terraform {
+	backend "local" {
+		path = "non-standard-path.tfstate"
+	}
+}
+EOF
+}`
+
+	writeCode(t, codePath, originalCode)
+	writeCode(t, terragruntConfigPath, terragruntConfig)
+	terragruntInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	commands := runTfautomv(t, workdir, []string{
+		"--terraform-bin=terragrunt",
+		"--output=commands"})
+	assert.NotEmpty(t, commands)
+	assert.Contains(t, commands, "terragrunt state mv")
+	assert.NotContains(t, commands, "terraform state mv")
+	assert.NoFileExists(t, filepath.Join(workdir, "moves.tf"))
+	runShellCommands(t, workdir, commands)
+
 	changeCount := countPlannedChanges(terragruntPlan(t, workdir))
 	assert.Equal(t, 0, changeCount)
 }
@@ -259,7 +417,9 @@ resource "random_pet" "refactored_third" {
 	writeCode(t, codePath, originalCode)
 	terraformInit(t, workdir)
 	writeCode(t, codePath, refactoredCode)
-	runTfautomv(t, workdir, nil)
+
+	runTfautomvPipeSh(t, workdir, nil)
+
 	changeCount := countPlannedChanges(terraformPlan(t, workdir))
 	assert.Equal(t, 0, changeCount)
 }
@@ -343,7 +503,7 @@ resource "random_pet" "refactored_second" {
 
 	// We don't care where we run tfautomv from, since we explicitly pass the
 	// workdirs as arguments.
-	runTfautomv(t, t.TempDir(), []string{workdirA, workdirB, workdirC})
+	runTfautomvPipeSh(t, t.TempDir(), []string{workdirA, workdirB, workdirC})
 
 	changeCount := 0
 	changeCount += countPlannedChanges(terraformPlan(t, workdirA))

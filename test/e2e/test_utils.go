@@ -143,7 +143,7 @@ func terragruntPlan(t *testing.T, workdir string) *tfjson.Plan {
 	return runPlan(t, workdir, terragruntBin)
 }
 
-func runTfautomv(t *testing.T, workdir string, args []string) {
+func runTfautomv(t *testing.T, workdir string, args []string) string {
 	t.Helper()
 
 	tfautomvBinAbsPath, err := filepath.Abs(tfautomvBin)
@@ -165,9 +165,7 @@ func runTfautomv(t *testing.T, workdir string, args []string) {
 		t.Fatalf("tfautomv failed: %v", err)
 	}
 
-	if stdout.Len() > 0 {
-		runShellCommands(t, workdir, stdout.String())
-	}
+	return stdout.String()
 }
 
 func runShellCommands(t *testing.T, workdir string, commands string) {
@@ -183,6 +181,16 @@ func runShellCommands(t *testing.T, workdir string, commands string) {
 	t.Log("Running shell commands")
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("shell commands failed: %v", err)
+	}
+}
+
+func runTfautomvPipeSh(t *testing.T, workdir string, args []string) {
+	t.Helper()
+
+	commands := runTfautomv(t, workdir, args)
+
+	if commands != "" {
+		runShellCommands(t, workdir, commands)
 	}
 }
 
