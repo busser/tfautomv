@@ -42,6 +42,10 @@ func (m Move) isWithinSameWorkdir() bool {
 // working directories. If the given moves contain such a move, WriteMovedBlocks
 // returns an error.
 func WriteMovedBlocks(w io.Writer, moves []Move) error {
+	if len(moves) == 0 {
+		return nil
+	}
+
 	var blocks []string
 
 	for _, move := range moves {
@@ -52,7 +56,7 @@ func WriteMovedBlocks(w io.Writer, moves []Move) error {
 		blocks = append(blocks, move.block())
 	}
 
-	_, err := w.Write([]byte(strings.Join(blocks, "\n")))
+	_, err := w.Write([]byte(strings.Join(blocks, "\n") + "\n"))
 
 	return err
 }
