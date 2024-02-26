@@ -45,7 +45,7 @@ jobs:
       - name: Install Terragrunt
         uses: autero1/action-terragrunt@v3.0.2
         with:
-          terragrunt_version: latest
+          terragrunt-version: latest
           token: ${{ secrets.GITHUB_TOKEN }} # to avoid rate limits
       - run: make build test-e2e
 
