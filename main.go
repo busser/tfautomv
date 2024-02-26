@@ -99,13 +99,13 @@ func run() error {
 	 * Run `terraform plan` for each working directory provided by the user.
 	 */
 
-	planOptions := []terraform.Option{
+	terraformOptions := []terraform.Option{
 		terraform.WithTerraformBin(terraformBin),
 		terraform.WithSkipInit(skipInit),
 		terraform.WithSkipRefresh(skipRefresh),
 	}
 
-	plans, err := getPlans(ctx, workdirs, planOptions)
+	plans, err := getPlans(ctx, workdirs, terraformOptions)
 	if err != nil {
 		return err
 	}
@@ -153,11 +153,11 @@ func run() error {
 			if err := writeMovedBlocks(sameModule); err != nil {
 				return err
 			}
-			if err := writeMoveCommands(differentModule); err != nil {
+			if err := writeMoveCommands(differentModule, terraformOptions...); err != nil {
 				return err
 			}
 		case !movedBlocksSupported:
-			if err := writeMoveCommands(terraformMoves); err != nil {
+			if err := writeMoveCommands(terraformMoves, terraformOptions...); err != nil {
 				return err
 			}
 		}
@@ -166,7 +166,7 @@ func run() error {
 			return err
 		}
 	case "commands":
-		if err := writeMoveCommands(terraformMoves); err != nil {
+		if err := writeMoveCommands(terraformMoves, terraformOptions...); err != nil {
 			return err
 		}
 	default:
@@ -319,12 +319,12 @@ func writeMovedBlocks(moves []terraform.Move) error {
 	return nil
 }
 
-func writeMoveCommands(moves []terraform.Move) error {
+func writeMoveCommands(moves []terraform.Move, options ...terraform.Option) error {
 	if len(moves) == 0 {
 		return nil
 	}
 
-	err := terraform.WriteMoveCommands(os.Stdout, moves)
+	err := terraform.WriteMoveCommands(os.Stdout, moves, options...)
 	if err != nil {
 		return fmt.Errorf("failed to write move commands: %w", err)
 	}
