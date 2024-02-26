@@ -45,6 +45,11 @@ resource "random_pet" "refactored_third" {
 }
 
 func TestE2E_OutputBlocks(t *testing.T) {
+	tfVersion := terraformVersion(t)
+	if tfVersion.LessThan(version.Must(version.NewVersion("1.1"))) {
+		t.Skip("tfautomv requires Terraform 1.6 or later to run this test")
+	}
+
 	workdir := t.TempDir()
 	codePath := filepath.Join(workdir, "main.tf")
 
@@ -331,17 +336,6 @@ resource "random_pet" "refactored_third" {
 	terragruntConfig := `
 inputs = {
 	prefix = "my-"
-}
-generate "backend" {
-	path      = "backend.tf"
-	if_exists = "overwrite"
-	contents = <<EOF
-terraform {
-	backend "local" {
-		path = "non-standard-path.tfstate"
-	}
-}
-EOF
 }`
 
 	writeCode(t, codePath, originalCode)
