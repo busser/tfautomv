@@ -84,6 +84,10 @@ func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
 		return fmt.Errorf("invalid options: %w", err)
 	}
 
+	return writeMoveCommands(w, moves, settings.terraformBin)
+}
+
+func writeMoveCommands(w io.Writer, moves []Move, terraformBin string) error {
 	var commands []string
 
 	// Start with moves within the same module.
@@ -97,7 +101,7 @@ func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
 
 			commands = append(commands,
 				fmt.Sprintf("%s%s state mv %q %q",
-					settings.terraformBin,
+					terraformBin,
 					chdirFlag,
 					m.FromAddress,
 					m.ToAddress,
@@ -123,7 +127,7 @@ func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
 	for _, workdir := range workdirs {
 		commands = append(commands,
 			fmt.Sprintf("%s -chdir=%q state pull > %q",
-				settings.terraformBin,
+				terraformBin,
 				workdir,
 				filepath.Join(workdir, localCopyFileName),
 			),
@@ -140,7 +144,7 @@ func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
 
 		commands = append(commands,
 			fmt.Sprintf("%s state mv -state=%q -state-out=%q %q %q",
-				settings.terraformBin,
+				terraformBin,
 				filepath.Join(move.FromWorkdir, localCopyFileName),
 				filepath.Join(move.ToWorkdir, localCopyFileName),
 				move.FromAddress,
@@ -154,7 +158,7 @@ func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
 	for _, workdir := range workdirs {
 		commands = append(commands,
 			fmt.Sprintf("%s -chdir=%q state push %q",
-				settings.terraformBin,
+				terraformBin,
 				workdir,
 				localCopyFileName,
 			),
@@ -163,7 +167,7 @@ func WriteMoveCommands(w io.Writer, moves []Move, opts ...Option) error {
 
 	// And we're done.
 
-	_, err = fmt.Fprintln(w, strings.Join(commands, "\n"))
+	_, err := fmt.Fprintln(w, strings.Join(commands, "\n"))
 
 	return err
 }

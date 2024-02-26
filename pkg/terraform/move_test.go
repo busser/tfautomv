@@ -167,7 +167,13 @@ func TestWriteMoveCommands(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			buf := new(bytes.Buffer)
 
-			err := WriteMoveCommands(buf, tt.moves, tt.options...)
+			var settings settings
+			settings.apply(append(defaultOptions(), tt.options...))
+
+			// We purposefully don't validate settings here. Whether the
+			// settings are valid depends on the testing environment.
+
+			err := writeMoveCommands(buf, tt.moves, settings.terraformBin)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
