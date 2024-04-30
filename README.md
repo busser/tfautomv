@@ -11,6 +11,7 @@ Generate Terraform `moved` blocks automatically.
 - [Installation](#installation)
   - [Homebrew](#homebrew)
   - [Yay](#yay)
+  - [asdf](#asdf)
   - [Shell script](#shell-script)
   - [Download](#download)
   - [From source](#from-source)
@@ -79,6 +80,14 @@ On Arch Linux:
 
 ```bash
 yay tfautomv-bin
+```
+
+### asdf
+
+With asdf version manager:
+
+```bash
+asdf plugin add tfautomv https://github.com/busser/asdf-tfautomv.git
 ```
 
 ### Shell script
