@@ -51,3 +51,20 @@ func GetPlan(ctx context.Context, opts ...Option) (*tfjson.Plan, error) {
 
 	return plan, nil
 }
+
+func GetPlanFromPath(p string) (*tfjson.Plan, error) {
+	data, err := ioutil.ReadFile(p)
+	if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal the JSON data into a Plan struct
+	var plan terraform.Plan
+	err = json.Unmarshal(data, &plan)
+	if err != nil {
+		return nil, err
+	}
+
+	return &plan, nil
+
+}

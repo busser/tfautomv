@@ -99,15 +99,25 @@ func run() error {
 	 * Run `terraform plan` for each working directory provided by the user.
 	 */
 
-	terraformOptions := []terraform.Option{
-		terraform.WithTerraformBin(terraformBin),
-		terraform.WithSkipInit(skipInit),
-		terraform.WithSkipRefresh(skipRefresh),
-	}
+	if planPaths == nil {
 
-	plans, err := getPlans(ctx, workdirs, terraformOptions)
-	if err != nil {
-		return err
+		terraformOptions := []terraform.Option{
+			terraform.WithTerraformBin(terraformBin),
+			terraform.WithSkipInit(skipInit),
+			terraform.WithSkipRefresh(skipRefresh),
+		}
+
+		plans, err := getPlans(ctx, workdirs, terraformOptions)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		plans := []engine.plan{}
+		for _, planPath := range planPaths {
+			jsonPlan, err := GetPlanFromPath(planPath)
+			plan, err := engine.SummarizeJSONPlan(planPath, jsonPlan)
+		}
 	}
 
 	/*
@@ -187,6 +197,7 @@ var (
 	skipRefresh  bool
 	terraformBin string
 	verbosity    int
+	planPaths    []string
 )
 
 func parseFlags() {
@@ -198,6 +209,7 @@ func parseFlags() {
 	flag.BoolVarP(&skipRefresh, "skip-refresh", "S", false, "skip running terraform refresh")
 	flag.StringVar(&terraformBin, "terraform-bin", "terraform", "terraform binary to use")
 	flag.CountVarP(&verbosity, "verbosity", "v", "increase verbosity (can be specified multiple times)")
+	flag.StringSliceVar(&planPaths, "plan-path", nil, "path to a plan file to use")
 
 	flag.Parse()
 }
