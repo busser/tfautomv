@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -53,13 +54,13 @@ func GetPlan(ctx context.Context, opts ...Option) (*tfjson.Plan, error) {
 }
 
 func GetPlanFromPath(p string) (*tfjson.Plan, error) {
-	data, err := ioutil.ReadFile(p)
+	data, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
 
 	// Unmarshal the JSON data into a Plan struct
-	var plan terraform.Plan
+	var plan tfjson.Plan
 	err = json.Unmarshal(data, &plan)
 	if err != nil {
 		return nil, err
