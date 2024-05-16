@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-version"
@@ -99,24 +100,29 @@ func run() error {
 	 * Run `terraform plan` for each working directory provided by the user.
 	 */
 
+	terraformOptions := []terraform.Option{
+		terraform.WithTerraformBin(terraformBin),
+		terraform.WithSkipInit(skipInit),
+		terraform.WithSkipRefresh(skipRefresh),
+	}
+
+	plans := make([]engine.Plan, 0)
 	if planPaths == nil {
-
-		terraformOptions := []terraform.Option{
-			terraform.WithTerraformBin(terraformBin),
-			terraform.WithSkipInit(skipInit),
-			terraform.WithSkipRefresh(skipRefresh),
-		}
-
-		plans, err := getPlans(ctx, workdirs, terraformOptions)
+		plans, err = getPlans(ctx, workdirs, terraformOptions)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		plans := []engine.plan{}
 		for _, planPath := range planPaths {
-			jsonPlan, err := GetPlanFromPath(planPath)
-			plan, err := engine.SummarizeJSONPlan(planPath, jsonPlan)
+			jsonPlan, err := terraform.GetPlanFromPath(planPath)
+			stringSlice := strings.Split(planPath, "/")
+			moduleID := strings.Join(stringSlice[:len(stringSlice)-1], "/")
+			plan, err := engine.SummarizeJSONPlan(moduleID, jsonPlan)
+			if err != nil {
+				return err
+			}
+			plans = append(plans, plan)
 		}
 	}
 
