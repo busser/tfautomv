@@ -29,6 +29,7 @@ Generate Terraform `moved` blocks automatically.
   - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
   - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
   - [Disabling colors in output](#disabling-colors-in-output)
+  - [Run tfautomv against a plan file](#run-tfautomv-against-a-plan-file)
 - [Thanks](#thanks)
 - [License](#license)
 
@@ -424,7 +425,7 @@ environment variable to any value:
 NO_COLOR=true tfautomv
 ```
 
-### Disabling colors in output
+### Run tfautomv against a plan file
 
 Add the `--plan-path` flag to your `tfautomv` skip running a terraform init and plan and instead use an already generated terraform json plan.
 
