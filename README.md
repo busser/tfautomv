@@ -424,6 +424,16 @@ environment variable to any value:
 NO_COLOR=true tfautomv
 ```
 
+### Disabling colors in output
+
+Add the `--plan-path` flag to your `tfautomv` skip running a terraform init and plan and instead use an already generated terraform json plan.
+
+For example:
+
+```bash
+tfautomv --plan-path ./plan.json
+```
+
 ## Thanks
 
 Thanks to [Padok](https://www.padok.fr), where this project was born 💜
