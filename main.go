@@ -95,9 +95,10 @@ func run() error {
 	}
 
 	/*
-	 * Step 2: Obtain Terraform plan
+	 * Step 2: Obtain Terraform plan if no plan file paths given
 	 *
 	 * Run `terraform plan` for each working directory provided by the user.
+	 * If plan file paths given read it in.
 	 */
 
 	terraformOptions := []terraform.Option{
@@ -116,8 +117,11 @@ func run() error {
 	} else {
 		for _, planPath := range planPaths {
 			jsonPlan, err := terraform.GetPlanFromPath(planPath)
-			stringSlice := strings.Split(planPath, "/")
-			moduleID := strings.Join(stringSlice[:len(stringSlice)-1], "/")
+			if err != nil {
+				return err
+			}
+			planPathSplit := strings.Split(planPath, "/")
+			moduleID := strings.Join(planPathSplit[:len(planPathSplit)-1], "/")
 			plan, err := engine.SummarizeJSONPlan(moduleID, jsonPlan)
 			if err != nil {
 				return err
