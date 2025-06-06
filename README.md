@@ -67,7 +67,7 @@ We explain why we built tfautomv in more detail [in this blog article](https://w
 
 Here's a quick view of what `tfautomv` does:
 
-![demo](./docs/images/demo.gif)
+![demo](./docs/demo.gif)
 
 ## Best Practices
 
