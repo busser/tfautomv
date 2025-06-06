@@ -358,7 +358,7 @@ inputs = {
 
 func TestE2E_OpenTofu(t *testing.T) {
 	checkOpentofuAvailable(t)
-	
+
 	workdir := t.TempDir()
 	codePath := filepath.Join(workdir, "main.tf")
 
@@ -396,7 +396,7 @@ resource "random_pet" "refactored_third" {
 
 func TestE2E_OpenTofuOutputCommands(t *testing.T) {
 	checkOpentofuAvailable(t)
-	
+
 	workdir := t.TempDir()
 	codePath := filepath.Join(workdir, "main.tf")
 
@@ -440,6 +440,8 @@ resource "random_pet" "refactored_third" {
 }
 
 func TestE2E_TerraformCloud(t *testing.T) {
+	checkTerraformCloudAvailable(t)
+
 	tfVersion := terraformVersion(t)
 	if tfVersion.LessThan(version.Must(version.NewVersion("1.6"))) {
 		t.Skip("tfautomv requires Terraform 1.6 or later to run this test")

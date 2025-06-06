@@ -61,6 +61,22 @@ func opentofuVersion(t *testing.T) *version.Version {
 	return runVersion(t, opentofuBin)
 }
 
+func checkOpentofuAvailable(t *testing.T) {
+	t.Helper()
+	_, err := exec.LookPath(opentofuBin)
+	if err != nil {
+		t.Skipf("OpenTofu binary %q not found in PATH", opentofuBin)
+	}
+}
+
+func checkTerraformCloudAvailable(t *testing.T) {
+	t.Helper()
+	token := os.Getenv("TERRAFORM_CLOUD_TOKEN")
+	if token == "" {
+		t.Skip("TERRAFORM_CLOUD_TOKEN environment variable not set")
+	}
+}
+
 func runInit(t *testing.T, workdir, executable string) {
 	t.Helper()
 
