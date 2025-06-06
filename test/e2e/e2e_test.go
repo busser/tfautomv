@@ -356,7 +356,92 @@ inputs = {
 	assert.Equal(t, 0, changeCount)
 }
 
+func TestE2E_OpenTofu(t *testing.T) {
+	checkOpentofuAvailable(t)
+
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+resource "random_pet" "original_third" {
+	length = 3
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	length = 3
+}`
+
+	writeCode(t, codePath, originalCode)
+	opentofuInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	runTfautomvPipeSh(t, workdir, []string{"--terraform-bin=tofu"})
+
+	changeCount := countPlannedChanges(opentofuPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+func TestE2E_OpenTofuOutputCommands(t *testing.T) {
+	checkOpentofuAvailable(t)
+
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+resource "random_pet" "original_third" {
+	length = 3
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	length = 3
+}`
+
+	writeCode(t, codePath, originalCode)
+	opentofuInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	commands := runTfautomv(t, workdir, []string{
+		"--terraform-bin=tofu",
+		"--output=commands"})
+	assert.NotEmpty(t, commands)
+	assert.Contains(t, commands, "tofu state mv")
+	assert.NotContains(t, commands, "terraform state mv")
+	assert.NoFileExists(t, filepath.Join(workdir, "moves.tf"))
+	runShellCommands(t, workdir, commands)
+
+	changeCount := countPlannedChanges(opentofuPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
 func TestE2E_TerraformCloud(t *testing.T) {
+	checkTerraformCloudAvailable(t)
+
 	tfVersion := terraformVersion(t)
 	if tfVersion.LessThan(version.Must(version.NewVersion("1.6"))) {
 		t.Skip("tfautomv requires Terraform 1.6 or later to run this test")

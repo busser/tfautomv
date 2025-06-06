@@ -21,6 +21,7 @@ const (
 	tfautomvBin   = "../../bin/tfautomv"
 	terraformBin  = "terraform"
 	terragruntBin = "terragrunt"
+	opentofuBin   = "tofu"
 )
 
 func writeCode(t *testing.T, path string, code string) {
@@ -53,6 +54,27 @@ func runVersion(t *testing.T, executable string) *version.Version {
 func terraformVersion(t *testing.T) *version.Version {
 	t.Helper()
 	return runVersion(t, terraformBin)
+}
+
+func opentofuVersion(t *testing.T) *version.Version {
+	t.Helper()
+	return runVersion(t, opentofuBin)
+}
+
+func checkOpentofuAvailable(t *testing.T) {
+	t.Helper()
+	_, err := exec.LookPath(opentofuBin)
+	if err != nil {
+		t.Skipf("OpenTofu binary %q not found in PATH", opentofuBin)
+	}
+}
+
+func checkTerraformCloudAvailable(t *testing.T) {
+	t.Helper()
+	token := os.Getenv("TERRAFORM_CLOUD_TOKEN")
+	if token == "" {
+		t.Skip("TERRAFORM_CLOUD_TOKEN environment variable not set")
+	}
 }
 
 func runInit(t *testing.T, workdir, executable string) {
@@ -106,6 +128,11 @@ func terragruntInitAndApply(t *testing.T, workdir string) {
 	runInitAndApply(t, workdir, terragruntBin)
 }
 
+func opentofuInitAndApply(t *testing.T, workdir string) {
+	t.Helper()
+	runInitAndApply(t, workdir, opentofuBin)
+}
+
 func runPlan(t *testing.T, workdir, executable string) *tfjson.Plan {
 	t.Helper()
 
@@ -142,6 +169,11 @@ func terraformPlan(t *testing.T, workdir string) *tfjson.Plan {
 func terragruntPlan(t *testing.T, workdir string) *tfjson.Plan {
 	t.Helper()
 	return runPlan(t, workdir, terragruntBin)
+}
+
+func opentofuPlan(t *testing.T, workdir string) *tfjson.Plan {
+	t.Helper()
+	return runPlan(t, workdir, opentofuBin)
 }
 
 func runTfautomv(t *testing.T, workdir string, args []string) string {
