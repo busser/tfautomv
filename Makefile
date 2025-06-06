@@ -36,7 +36,7 @@ test-e2e:
 release: test
 	git tag -a "$(VERSION)" -m "$(VERSION)"
 	git push origin "$(VERSION)"
-	goreleaser release --clean --release-notes=docs/release-notes/$(VERSION).md
+	GITHUB_TOKEN=$$(gh auth token) goreleaser release --clean --release-notes=docs/release-notes/$(VERSION).md
 
 ## release-dry-run: Test the release process without publishing
 .PHONY: release-dry-run
