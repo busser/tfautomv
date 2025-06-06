@@ -4,7 +4,7 @@
 [![GitHub release](https://img.shields.io/github/release/busser/tfautomv.svg)](https://github.com/busser/tfautomv/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/busser/tfautomv)](https://goreportcard.com/report/github.com/busser/tfautomv)
 
-Generate Terraform `moved` blocks automatically.
+Generate `moved` blocks and state move commands automatically for Terraform, OpenTofu, and Terragrunt.
 
 - [Why?](#why)
 - [Requirements](#requirements)
@@ -155,18 +155,15 @@ environment variable.
 
 ## Usage
 
-### Generating `moved` blocks
+### Quick Start
 
-In any directory where you would run `terraform plan`, you can run:
+**Basic usage** - run in any directory where you would run `terraform plan`:
 
 ```bash
 tfautomv
 ```
 
-This will run `terraform init`, `terraform refresh`, and `terraform plan`, and
-then write `moved` blocks to a `moves.tf` file.
-
-That's all there is to it!
+This will run `terraform init`, `terraform refresh`, and `terraform plan`, then write `moved` blocks to a `moves.tf` file.
 
 You can also target a specific working directory:
 
@@ -174,20 +171,25 @@ You can also target a specific working directory:
 tfautomv ./production
 ```
 
-### Generating `terraform state mv` commands
+### Core Features
 
-By default, tfautomv writes moves to as `moved` blocks when possible and falls
-back to `terraform state mv` commands when not.
+#### Generating `moved` blocks
 
-You can force `tfautomv` to write only `moved` blocks with the `--output=blocks`
-flag:
+By default, tfautomv generates `moved` blocks when possible:
+
+```bash
+tfautomv
+```
+
+Force `moved` blocks only with the `--output=blocks` flag:
 
 ```bash
 tfautomv --output=blocks
 ```
 
-You can force `tfautomv` to write only `terraform state mv` commands with the
-`--output=commands` flag:
+#### Generating `terraform state mv` commands
+
+Force `terraform state mv` commands only with the `--output=commands` flag:
 
 ```bash
 tfautomv --output=commands
@@ -214,7 +216,7 @@ The `-o` flag is shorthand for `--output`:
 tfautomv -o commands
 ```
 
-### Finding moves across multiple directories
+#### Finding moves across multiple directories
 
 If you have multiple Terraform modules in different directories, you can pass
 those directories to `tfautomv`:
@@ -237,7 +239,9 @@ You can pass as many directories as you want to `tfautomv`.
 This is only compatible with the `commands` output format. Terraform's `moved`
 block syntax does not support moving resources across directories.
 
-### Skipping the `init` and `refresh` steps
+### Advanced Features
+
+#### Performance optimization
 
 By default, `tfautomv` runs Terraform's `init`, `refresh`, and `plan` steps.
 To save time, you can skip the `init` or `refresh` steps with the `--skip-init`
@@ -253,7 +257,7 @@ The `-s` flag is shorthand for `--skip-init` and `-S` for `--skip-refresh:
 tfautomv -sS
 ```
 
-### Understanding why a resource was not moved
+#### Debugging and verbosity
 
 If you are not seeing a `moved` block for a resource you expected to be moved,
 you can increase `tfautomv`'s verbosity with the `-v` flag to get more
@@ -480,7 +484,9 @@ resource "aws_instance" "web_server" {  # renamed
 # Instead: rename first, apply moves, then modify tags separately
 ```
 
-### Passing additional arguments to Terraform
+### Tool Integration
+
+#### Passing additional arguments to Terraform
 
 You can pass additional arguments to Terraform by using Terraform's built-in
 [`TF_CLI_ARGS` and `TF_CLI_ARGS_name` environment variables.](https://www.terraform.io/cli/config/environment-variables#tf_cli_args-and-tf_cli_args_name).
@@ -491,7 +497,7 @@ For example, in order to use a file of variables during Terraform's plan:
 TF_CLI_ARGS_plan="-var-file=production.tfvars" tfautomv
 ```
 
-### Using Terragrunt instead of Terraform
+#### Using Terragrunt instead of Terraform
 
 You can tell `tfautomv` to use the Terragrunt CLI instead of the Terraform CLI
 with the `--terraform-bin` flag:
@@ -500,7 +506,7 @@ with the `--terraform-bin` flag:
 tfautomv --terraform-bin=terragrunt
 ```
 
-### Using OpenTofu instead of Terraform
+#### Using OpenTofu instead of Terraform
 
 OpenTofu is officially supported! You can use OpenTofu with the `--terraform-bin` flag:
 
@@ -510,11 +516,13 @@ tfautomv --terraform-bin=tofu
 
 This works with all tfautomv features including `moved` blocks, `tofu state mv` commands, and the `--preplanned` flag.
 
-### Using other Terraform-compatible tools
+#### Using other Terraform-compatible tools
 
 The `--terraform-bin` flag works with any executable that has an `init` and `plan` command compatible with Terraform.
 
-### Using existing plan files
+### Enterprise & CI/CD
+
+#### Using existing plan files
 
 If you have already generated Terraform plan files, you can use them directly with the `--preplanned` flag instead of having tfautomv run `terraform plan`. This is useful for:
 
