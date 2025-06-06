@@ -28,6 +28,7 @@ Generate Terraform `moved` blocks automatically.
     - [Referencing nested attributes](#referencing-nested-attributes)
   - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
   - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
+  - [Using existing plan files](#using-existing-plan-files)
   - [Disabling colors in output](#disabling-colors-in-output)
 - [Thanks](#thanks)
 - [License](#license)
@@ -498,6 +499,63 @@ tfautomv --terraform-bin=terragrunt
 ```
 
 This also works with any other executable that has an `init` and `plan` command.
+
+### Using existing plan files
+
+If you have already generated Terraform plan files, you can use them directly with the `--preplanned` flag instead of having tfautomv run `terraform plan`. This is useful for:
+
+- **Performance**: Avoid re-running expensive plan operations when iterating on `--ignore` rules
+- **Enterprise environments**: Where running terraform locally is complex due to secrets or remote state
+- **CI/CD workflows**: Where plans are generated in earlier pipeline stages
+- **Remote workspaces**: TFE/Cloud environments where you can download JSON plans but can't run terraform locally
+
+#### Single directory with default plan file
+
+First generate a plan file, then run tfautomv:
+
+```bash
+terraform plan -out=tfplan.bin
+tfautomv --preplanned
+```
+
+#### Single directory with custom plan file
+
+```bash
+terraform plan -out=my-plan.bin
+tfautomv --preplanned --preplanned-file=my-plan.bin
+```
+
+#### Multiple directories
+
+Each directory must have its own plan file:
+
+```bash
+# Generate plans in each directory
+(cd production && terraform plan -out=tfplan.bin)
+(cd staging && terraform plan -out=tfplan.bin)
+
+# Run tfautomv across both directories
+tfautomv --preplanned production staging
+```
+
+#### JSON vs binary plan files
+
+tfautomv automatically detects the plan file format:
+- **Binary plans** (default): tfautomv runs `terraform show -json` to convert them
+- **JSON plans** (`.json` extension): tfautomv reads them directly
+
+```bash
+# Binary plan (requires terraform show conversion)
+terraform plan -out=tfplan.bin
+tfautomv --preplanned
+
+# JSON plan (read directly) - useful for CI/CD or when you already have JSON
+terraform plan -out=tfplan.bin
+terraform show -json tfplan.bin > tfplan.json
+tfautomv --preplanned --preplanned-file=tfplan.json
+```
+
+**Important**: When using `--preplanned`, all specified directories must have the plan file. If any directory is missing its plan file, tfautomv will exit with an error.
 
 ### Disabling colors in output
 
