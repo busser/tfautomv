@@ -51,6 +51,32 @@ Here's a quick view of what `tfautomv` does:
 
 ![demo](./docs/content/getting-started/demo.gif)
 
+## Best Practices
+
+`tfautomv` is designed for **refactoring scenarios** where you want to restructure your Terraform code without changing the actual infrastructure. Understanding this distinction is crucial for successful usage.
+
+### ✅ Good use cases (pure refactoring)
+
+- **Renaming resources**: `aws_instance.web` → `aws_instance.web_server`
+- **Moving resources between modules**: `aws_instance.web` → `module.ec2.aws_instance.web`
+- **Changing resource organization**: Converting single resources to `for_each` loops
+- **Module restructuring**: Moving resources between different modules
+
+### ❌ Problematic use cases (infrastructure changes)
+
+- **Changing resource configuration**: Removing or adding attributes like `tags`, `security_groups`, etc.
+- **Combining refactoring with configuration changes**: Renaming AND modifying attributes in the same operation
+- **Provider-specific transformations**: Changes where the provider modifies attribute values
+
+### Recommended workflow
+
+1. **First, make structural changes only**: Rename resources, move between modules, or restructure without changing any resource attributes
+2. **Run tfautomv**: Generate the appropriate `moved` blocks or `terraform state mv` commands
+3. **Apply the moves**: This should result in an empty or minimal plan showing no infrastructure changes
+4. **Then make configuration changes**: In a separate step, modify resource attributes as needed
+
+This approach ensures that moves represent safe refactoring operations separate from infrastructure changes.
+
 ## Requirements
 
 `tfautomv` uses the Terraform CLI command under the hood. This allows it to work
@@ -269,6 +295,23 @@ In those cases, you can use the `-ignore` flag to ignore specific differences.
 `tfautomv` will ignore differences based on a set of rules that you can
 provide.
 
+#### ⚠️ Important considerations when using `--ignore`
+
+The `--ignore` flag tells tfautomv to act as if certain attributes don't exist when comparing resources. While powerful, this comes with risks:
+
+- **Risk of incorrect matches**: If ignored attributes are actually important for identifying the correct resource pairing, tfautomv may match unrelated resources or fail to find matches
+- **Intended for provider quirks**: Use primarily when providers transform attribute values in ways that don't reflect actual infrastructure changes
+- **Not for configuration changes**: Avoid using `--ignore` to force matches when you've intentionally changed resource configuration
+
+**Good use cases for `--ignore`**:
+- Provider transforms whitespace in policy documents
+- Provider adds computed fields that weren't in the original configuration
+- Provider normalizes values (e.g., adding default ports to security group rules)
+
+**Problematic use cases for `--ignore`**:
+- Forcing matches when you've intentionally changed tags, security groups, or other meaningful attributes
+- Ignoring differences that represent real infrastructure changes you made
+
 Each rule includes:
 
 - A _kind_ that identifies the nature of the difference to ignore
@@ -382,6 +425,56 @@ flag:
 
 ```bash
 tfautomv -vvv
+```
+
+#### Examples: When to use and avoid `--ignore`
+
+**✅ Good example - Provider-transformed attribute**:
+```bash
+# Provider normalizes JSON policy formatting
+tfautomv --ignore="whitespace:aws_iam_policy:policy"
+```
+
+**✅ Good example - Provider adds computed fields**:
+```bash
+# Provider adds computed "arn" or "id" fields that weren't in configuration
+tfautomv --ignore="everything:aws_s3_bucket:arn"
+```
+
+**❌ Problematic example - Intentional configuration change**:
+```bash
+# DON'T do this - you've intentionally changed tags
+# This forces a match that may result in unintended infrastructure changes
+tfautomv --ignore="everything:aws_instance:tags"
+
+# Instead: Apply moves first, then change tags in a separate operation
+```
+
+**❌ Problematic example - Mixing refactoring with changes**:
+```terraform
+# Before (applied to infrastructure):
+resource "aws_instance" "web" {
+  ami           = "ami-12345"
+  instance_type = "t2.micro"
+  tags = {
+    Environment = "prod"
+    Team        = "backend"
+  }
+}
+
+# After (refactored AND changed):
+resource "aws_instance" "web_server" {  # renamed
+  ami           = "ami-12345"
+  instance_type = "t2.micro"
+  tags = {
+    Environment = "production"  # changed value
+    Team        = "backend"
+    Project     = "website"     # added new tag
+  }
+}
+
+# DON'T use --ignore here - this mixes refactoring with real changes
+# Instead: rename first, apply moves, then modify tags separately
 ```
 
 ### Passing additional arguments to Terraform
