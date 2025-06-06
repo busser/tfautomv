@@ -7,6 +7,10 @@
 Generate `moved` blocks and state move commands automatically for Terraform, OpenTofu, and Terragrunt.
 
 - [Why?](#why)
+- [Best Practices](#best-practices)
+  - [✅ Good use cases (pure refactoring)](#-good-use-cases-pure-refactoring)
+  - [❌ Problematic use cases (infrastructure changes)](#-problematic-use-cases-infrastructure-changes)
+  - [Recommended workflow](#recommended-workflow)
 - [Requirements](#requirements)
 - [Installation](#installation)
   - [Homebrew](#homebrew)
@@ -16,21 +20,32 @@ Generate `moved` blocks and state move commands automatically for Terraform, Ope
   - [Download](#download)
   - [From source](#from-source)
 - [Usage](#usage)
-  - [Generating `moved` blocks](#generating-moved-blocks)
-  - [Generating `terraform state mv` commands](#generating-terraform-state-mv-commands)
-  - [Finding moves across multiple directories](#finding-moves-across-multiple-directories)
-  - [Skipping the `init` and `refresh` steps](#skipping-the-init-and-refresh-steps)
-  - [Understanding why a resource was not moved](#understanding-why-a-resource-was-not-moved)
+  - [Quick Start](#quick-start)
+  - [Core Features](#core-features)
+    - [Generating `moved` blocks](#generating-moved-blocks)
+    - [Generating `terraform state mv` commands](#generating-terraform-state-mv-commands)
+    - [Finding moves across multiple directories](#finding-moves-across-multiple-directories)
+  - [Advanced Features](#advanced-features)
+    - [Performance optimization](#performance-optimization)
+    - [Debugging and verbosity](#debugging-and-verbosity)
   - [Ignoring certain differences](#ignoring-certain-differences)
+    - [⚠️ Important considerations when using `--ignore`](#️-important-considerations-when-using---ignore)
     - [The `everything` kind](#the-everything-kind)
     - [The `whitespace` kind](#the-whitespace-kind)
     - [The `prefix` kind](#the-prefix-kind)
     - [Referencing nested attributes](#referencing-nested-attributes)
-  - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
-  - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
-  - [Using OpenTofu instead of Terraform](#using-opentofu-instead-of-terraform)
-  - [Using other Terraform-compatible tools](#using-other-terraform-compatible-tools)
-  - [Using existing plan files](#using-existing-plan-files)
+    - [Examples: When to use and avoid `--ignore`](#examples-when-to-use-and-avoid---ignore)
+  - [Tool Integration](#tool-integration)
+    - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
+    - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
+    - [Using OpenTofu instead of Terraform](#using-opentofu-instead-of-terraform)
+    - [Using other Terraform-compatible tools](#using-other-terraform-compatible-tools)
+  - [Enterprise \& CI/CD](#enterprise--cicd)
+    - [Using existing plan files](#using-existing-plan-files)
+    - [Single directory with default plan file](#single-directory-with-default-plan-file)
+    - [Single directory with custom plan file](#single-directory-with-custom-plan-file)
+    - [Multiple directories](#multiple-directories)
+    - [JSON vs binary plan files](#json-vs-binary-plan-files)
   - [Disabling colors in output](#disabling-colors-in-output)
 - [Thanks](#thanks)
 - [License](#license)
@@ -52,7 +67,7 @@ We explain why we built tfautomv in more detail [in this blog article](https://w
 
 Here's a quick view of what `tfautomv` does:
 
-![demo](./docs/content/getting-started/demo.gif)
+![demo](./docs/images/demo.gif)
 
 ## Best Practices
 
@@ -311,11 +326,13 @@ The `--ignore` flag tells tfautomv to act as if certain attributes don't exist w
 - **Not for configuration changes**: Avoid using `--ignore` to force matches when you've intentionally changed resource configuration
 
 **Good use cases for `--ignore`**:
+
 - Provider transforms whitespace in policy documents
 - Provider adds computed fields that weren't in the original configuration
 - Provider normalizes values (e.g., adding default ports to security group rules)
 
 **Problematic use cases for `--ignore`**:
+
 - Forcing matches when you've intentionally changed tags, security groups, or other meaningful attributes
 - Ignoring differences that represent real infrastructure changes you made
 
@@ -437,18 +454,21 @@ tfautomv -vvv
 #### Examples: When to use and avoid `--ignore`
 
 **✅ Good example - Provider-transformed attribute**:
+
 ```bash
 # Provider normalizes JSON policy formatting
 tfautomv --ignore="whitespace:aws_iam_policy:policy"
 ```
 
 **✅ Good example - Provider adds computed fields**:
+
 ```bash
 # Provider adds computed "arn" or "id" fields that weren't in configuration
 tfautomv --ignore="everything:aws_s3_bucket:arn"
 ```
 
 **❌ Problematic example - Intentional configuration change**:
+
 ```bash
 # DON'T do this - you've intentionally changed tags
 # This forces a match that may result in unintended infrastructure changes
@@ -458,6 +478,7 @@ tfautomv --ignore="everything:aws_instance:tags"
 ```
 
 **❌ Problematic example - Mixing refactoring with changes**:
+
 ```terraform
 # Before (applied to infrastructure):
 resource "aws_instance" "web" {
@@ -563,6 +584,7 @@ tfautomv --preplanned production staging
 #### JSON vs binary plan files
 
 tfautomv automatically detects the plan file format:
+
 - **Binary plans** (default): tfautomv runs `terraform show -json` to convert them
 - **JSON plans** (`.json` extension): tfautomv reads them directly
 
