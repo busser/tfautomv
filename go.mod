@@ -1,6 +1,8 @@
 module github.com/busser/tfautomv
 
-go 1.22.2
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	github.com/google/go-cmp v0.7.0
@@ -17,6 +19,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
