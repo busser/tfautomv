@@ -357,6 +357,8 @@ inputs = {
 }
 
 func TestE2E_OpenTofu(t *testing.T) {
+	checkOpentofuAvailable(t)
+	
 	workdir := t.TempDir()
 	codePath := filepath.Join(workdir, "main.tf")
 
@@ -393,6 +395,8 @@ resource "random_pet" "refactored_third" {
 }
 
 func TestE2E_OpenTofuOutputCommands(t *testing.T) {
+	checkOpentofuAvailable(t)
+	
 	workdir := t.TempDir()
 	codePath := filepath.Join(workdir, "main.tf")
 
