@@ -36,4 +36,9 @@ test-e2e:
 release: test
 	git tag -a "$(VERSION)" -m "$(VERSION)"
 	git push origin "$(VERSION)"
-	goreleaser release --rm-dist
+	goreleaser release --clean
+
+## release-dry-run: Test the release process without publishing
+.PHONY: release-dry-run
+release-dry-run:
+	goreleaser release --snapshot --clean --skip=publish
