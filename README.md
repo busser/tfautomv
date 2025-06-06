@@ -28,6 +28,8 @@ Generate Terraform `moved` blocks automatically.
     - [Referencing nested attributes](#referencing-nested-attributes)
   - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
   - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
+  - [Using OpenTofu instead of Terraform](#using-opentofu-instead-of-terraform)
+  - [Using other Terraform-compatible tools](#using-other-terraform-compatible-tools)
   - [Using existing plan files](#using-existing-plan-files)
   - [Disabling colors in output](#disabling-colors-in-output)
 - [Thanks](#thanks)
@@ -498,7 +500,19 @@ with the `--terraform-bin` flag:
 tfautomv --terraform-bin=terragrunt
 ```
 
-This also works with any other executable that has an `init` and `plan` command.
+### Using OpenTofu instead of Terraform
+
+OpenTofu is officially supported! You can use OpenTofu with the `--terraform-bin` flag:
+
+```bash
+tfautomv --terraform-bin=tofu
+```
+
+This works with all tfautomv features including `moved` blocks, `terraform state mv` commands, and the `--preplanned` flag.
+
+### Using other Terraform-compatible tools
+
+The `--terraform-bin` flag works with any executable that has an `init` and `plan` command compatible with Terraform.
 
 ### Using existing plan files
 
