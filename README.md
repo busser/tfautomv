@@ -508,7 +508,7 @@ OpenTofu is officially supported! You can use OpenTofu with the `--terraform-bin
 tfautomv --terraform-bin=tofu
 ```
 
-This works with all tfautomv features including `moved` blocks, `terraform state mv` commands, and the `--preplanned` flag.
+This works with all tfautomv features including `moved` blocks, `tofu state mv` commands, and the `--preplanned` flag.
 
 ### Using other Terraform-compatible tools
 
