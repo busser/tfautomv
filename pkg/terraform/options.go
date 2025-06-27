@@ -7,10 +7,11 @@ import (
 )
 
 type settings struct {
-	workdir      string
-	terraformBin string
-	skipInit     bool
-	skipRefresh  bool
+	workdir       string
+	terraformBin  string
+	skipInit      bool
+	skipRefresh   bool
+	useTerragrunt bool
 }
 
 // An Option configures how Terraform commands are run.
@@ -59,6 +60,14 @@ func WithSkipInit(skipInit bool) Option {
 func WithSkipRefresh(skipRefresh bool) Option {
 	return func(s *settings) {
 		s.skipRefresh = skipRefresh
+	}
+}
+
+// WithTerragrunt configures whether to use terragrunt-specific behavior.
+// This enables custom version parsing that works with terragrunt's output format.
+func WithTerragrunt(useTerragrunt bool) Option {
+	return func(s *settings) {
+		s.useTerragrunt = useTerragrunt
 	}
 }
 
