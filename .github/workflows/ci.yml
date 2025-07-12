@@ -47,6 +47,10 @@ jobs:
         with:
           terragrunt-version: latest
           token: ${{ secrets.GITHUB_TOKEN }} # to avoid rate limits
+      - name: Show version information
+        run: |
+          terraform version -json
+          terragrunt version -json
       - run: make build test-e2e
 
   end-to-end-tests-opentofu:
@@ -71,6 +75,8 @@ jobs:
         with:
           tofu_version: ${{ matrix.opentofu-version }}
           tofu_wrapper: false
+      - name: Show version information
+        run: tofu version -json
       - run: make build
       - name: Run OpenTofu-specific tests
         run: go test ./test/e2e -run TestE2E_OpenTofu -v
@@ -109,6 +115,10 @@ jobs:
         with:
           terragrunt-version: ${{ matrix.terragrunt-version }}
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Show version information
+        run: |
+          terraform version -json
+          terragrunt version -json
       - run: make build
       - name: Run Terragrunt-specific tests
         run: go test ./test/e2e -run TestE2E_Terragrunt -v
