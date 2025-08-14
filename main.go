@@ -31,6 +31,14 @@ var tfautomvVersion string
 func run() error {
 	parseFlags()
 
+	// Handle --terragrunt flag
+	if useTerragrunt {
+		if flag.Lookup("terraform-bin").Changed {
+			return fmt.Errorf("--terragrunt cannot be used with --terraform-bin")
+		}
+		terraformBin = "terragrunt"
+	}
+
 	workdirs := flag.Args()
 	if len(workdirs) == 0 {
 		workdirs = []string{"."}
@@ -69,7 +77,12 @@ func run() error {
 		return fmt.Errorf("--preplanned-file can only be used with --preplanned")
 	}
 
-	tfVersion, err := terraform.GetVersion(ctx, terraform.WithTerraformBin(terraformBin))
+	versionOptions := []terraform.Option{terraform.WithTerraformBin(terraformBin)}
+	if useTerragrunt {
+		versionOptions = append(versionOptions, terraform.WithTerragrunt(true))
+	}
+
+	tfVersion, err := terraform.GetVersion(ctx, versionOptions...)
 	if err != nil {
 		return fmt.Errorf("failed to get Terraform version: %w", err)
 	}
@@ -112,6 +125,9 @@ func run() error {
 		terraform.WithTerraformBin(terraformBin),
 		terraform.WithSkipInit(skipInit),
 		terraform.WithSkipRefresh(skipRefresh),
+	}
+	if useTerragrunt {
+		terraformOptions = append(terraformOptions, terraform.WithTerragrunt(true))
 	}
 
 	var plans []engine.Plan
@@ -201,6 +217,7 @@ var (
 	skipInit       bool
 	skipRefresh    bool
 	terraformBin   string
+	useTerragrunt  bool
 	verbosity      int
 	preplannedFile string
 	usePreplanned  bool
@@ -214,6 +231,7 @@ func parseFlags() {
 	flag.BoolVarP(&skipInit, "skip-init", "s", false, "skip running terraform init")
 	flag.BoolVarP(&skipRefresh, "skip-refresh", "S", false, "skip running terraform refresh")
 	flag.StringVar(&terraformBin, "terraform-bin", "terraform", "terraform binary to use")
+	flag.BoolVar(&useTerragrunt, "terragrunt", false, "use terragrunt instead of terraform (sets --terraform-bin=terragrunt and enables terragrunt-specific version parsing)")
 	flag.CountVarP(&verbosity, "verbosity", "v", "increase verbosity (can be specified multiple times)")
 	flag.BoolVar(&usePreplanned, "preplanned", false, "use existing plan files instead of running terraform plan")
 	flag.StringVar(&preplannedFile, "preplanned-file", "tfplan.bin", "plan file name when using --preplanned")

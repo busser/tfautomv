@@ -520,12 +520,23 @@ TF_CLI_ARGS_plan="-var-file=production.tfvars" tfautomv
 
 #### Using Terragrunt instead of Terraform
 
-You can tell `tfautomv` to use the Terragrunt CLI instead of the Terraform CLI
-with the `--terraform-bin` flag:
+You can use `tfautomv` with Terragrunt in two ways:
+
+**Option 1: Using the `--terragrunt` flag (recommended)**
+
+```bash
+tfautomv --terragrunt
+```
+
+This automatically uses the `terragrunt` binary and enables terragrunt-specific compatibility features, including proper version parsing that handles terragrunt's output format.
+
+**Option 2: Using the `--terraform-bin` flag**
 
 ```bash
 tfautomv --terraform-bin=terragrunt
 ```
+
+This approach works but may encounter version parsing issues with some terragrunt versions. The `--terragrunt` flag is recommended for better compatibility.
 
 #### Using OpenTofu instead of Terraform
 
