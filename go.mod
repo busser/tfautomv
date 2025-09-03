@@ -2,7 +2,7 @@ module github.com/busser/tfautomv
 
 go 1.23.0
 
-toolchain go1.24.5
+toolchain go1.25.1
 
 require (
 	github.com/google/go-cmp v0.7.0
