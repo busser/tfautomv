@@ -356,6 +356,62 @@ inputs = {
 	assert.Equal(t, 0, changeCount)
 }
 
+func TestE2E_TerragruntFlag(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+	terragruntConfigPath := filepath.Join(workdir, "terragrunt.hcl")
+
+	originalCode := `
+variable "prefix" {
+	type = string
+}
+resource "random_pet" "original_first" {
+	prefix = var.prefix
+	length = 1
+}
+resource "random_pet" "original_second" {
+	prefix = var.prefix
+	length = 2
+}
+resource "random_pet" "original_third" {
+	prefix = var.prefix
+	length = 3
+}`
+
+	refactoredCode := `
+variable "prefix" {
+	type = string
+}
+resource "random_pet" "refactored_first" {
+	prefix = var.prefix
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	prefix = var.prefix
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	prefix = var.prefix
+	length = 3
+}`
+
+	terragruntConfig := `
+inputs = {
+	prefix = "my-"
+}`
+
+	writeCode(t, codePath, originalCode)
+	writeCode(t, terragruntConfigPath, terragruntConfig)
+	terragruntInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	// Test using the new --terragrunt flag instead of --terraform-bin=terragrunt
+	runTfautomvPipeSh(t, workdir, []string{"--terragrunt"})
+
+	changeCount := countPlannedChanges(terragruntPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
 func TestE2E_OpenTofu(t *testing.T) {
 	checkOpentofuAvailable(t)
 
