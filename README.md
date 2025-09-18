@@ -432,8 +432,25 @@ tfautomv --ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
 ```
 
 will strip the `b/` prefix from the `bucket` attribute of any
-`google_storage_bucket_iam_member` resources before comparing the attirbute's
+`google_storage_bucket_iam_member` resources before comparing the attribute's
 values.
+
+#### The `json` kind
+
+Use the `json` kind to ignore string differences for equivalent JSON:
+
+```bash
+tfautomv --ignore="json:<RESOURCE TYPE>:<ATTRIBUTE NAME>"
+```
+
+For example:
+
+```bash
+tfautomv --ignore="json:local_file:content"
+```
+
+will compare the JSON representation of the `content` attribute of any `local_file`
+resources instead of the raw strings.
 
 #### Referencing nested attributes
 
