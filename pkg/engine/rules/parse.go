@@ -22,6 +22,9 @@ const (
 	// RuleTypeWhitespace ignores differences in whitespace between two
 	// attributes' values. Whitespace is as defined by unicode.IsSpace.
 	RuleTypeWhitespace RuleType = "whitespace"
+
+	// RuleTypeJSON ignores differences in JSON representation.
+	RuleTypeJSON RuleType = "json"
 )
 
 // Parse converts a string into a Rule.
@@ -40,6 +43,8 @@ func Parse(s string) (engine.Rule, error) {
 		return parsePrefixRule(parts[1])
 	case RuleTypeWhitespace:
 		return parseWhitespaceRule(parts[1])
+	case RuleTypeJSON:
+		return parseJSONRule(parts[1])
 	default:
 		return nil, fmt.Errorf("unknown rule type %q", ruleType)
 	}
