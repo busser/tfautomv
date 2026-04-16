@@ -61,6 +61,14 @@ func run() error {
 		return fmt.Errorf("blocks output format is not supported for multiple modules")
 	}
 
+	if usePreplanned && (skipInit || skipRefresh) {
+		return fmt.Errorf("--preplanned cannot be used with --skip-init or --skip-refresh flags")
+	}
+
+	if !usePreplanned && flag.Lookup("preplanned-file").Changed {
+		return fmt.Errorf("--preplanned-file can only be used with --preplanned")
+	}
+
 	tfVersion, err := terraform.GetVersion(ctx, terraform.WithTerraformBin(terraformBin))
 	if err != nil {
 		return fmt.Errorf("failed to get Terraform version: %w", err)
@@ -96,7 +104,8 @@ func run() error {
 	/*
 	 * Step 2: Obtain Terraform plan
 	 *
-	 * Run `terraform plan` for each working directory provided by the user.
+	 * Either run `terraform plan` for each working directory provided by the user,
+	 * or read existing plan files if --preplanned flag is used.
 	 */
 
 	terraformOptions := []terraform.Option{
@@ -105,7 +114,13 @@ func run() error {
 		terraform.WithSkipRefresh(skipRefresh),
 	}
 
-	plans, err := getPlans(ctx, workdirs, terraformOptions)
+	var plans []engine.Plan
+
+	if usePreplanned {
+		plans, err = getPreplannedPlans(ctx, workdirs, preplannedFile, terraformOptions)
+	} else {
+		plans, err = getPlans(ctx, workdirs, terraformOptions)
+	}
 	if err != nil {
 		return err
 	}
@@ -179,14 +194,16 @@ func run() error {
 
 // Flags
 var (
-	ignoreRules  []string
-	noColor      bool
-	outputFormat string
-	printVersion bool
-	skipInit     bool
-	skipRefresh  bool
-	terraformBin string
-	verbosity    int
+	ignoreRules    []string
+	noColor        bool
+	outputFormat   string
+	printVersion   bool
+	skipInit       bool
+	skipRefresh    bool
+	terraformBin   string
+	verbosity      int
+	preplannedFile string
+	usePreplanned  bool
 )
 
 func parseFlags() {
@@ -198,6 +215,8 @@ func parseFlags() {
 	flag.BoolVarP(&skipRefresh, "skip-refresh", "S", false, "skip running terraform refresh")
 	flag.StringVar(&terraformBin, "terraform-bin", "terraform", "terraform binary to use")
 	flag.CountVarP(&verbosity, "verbosity", "v", "increase verbosity (can be specified multiple times)")
+	flag.BoolVar(&usePreplanned, "preplanned", false, "use existing plan files instead of running terraform plan")
+	flag.StringVar(&preplannedFile, "preplanned-file", "tfplan.bin", "plan file name when using --preplanned")
 
 	flag.Parse()
 }
@@ -243,6 +262,76 @@ func getPlans(ctx context.Context, workdirs []string, options []terraform.Option
 		plan, err := engine.SummarizeJSONPlan(workdirs[i], jsonPlan)
 		if err != nil {
 			results[i].err = fmt.Errorf("failed to summarize plan for workdir %q: %w", workdir, err)
+			return
+		}
+
+		results[i].plan = plan
+	}
+
+	var wg sync.WaitGroup
+	for i := range workdirs {
+		wg.Add(1)
+		go func(i int) {
+			getPlan(i)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	var errs []error
+	for _, r := range results {
+		if r.err != nil {
+			errs = append(errs, r.err)
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
+	var plans []engine.Plan
+	for _, r := range results {
+		plans = append(plans, r.plan)
+	}
+
+	return plans, nil
+}
+
+func getPreplannedPlans(ctx context.Context, workdirs []string, planFilename string, options []terraform.Option) ([]engine.Plan, error) {
+	type result struct {
+		plan engine.Plan
+		err  error
+	}
+	results := make([]result, len(workdirs))
+
+	// First, validate that all directories have the plan file
+	for _, workdir := range workdirs {
+		planPath := filepath.Join(workdir, planFilename)
+		if _, err := os.Stat(planPath); os.IsNotExist(err) {
+			return nil, fmt.Errorf("plan file not found: %s (all directories must have plan files when using --preplanned)", planPath)
+		}
+	}
+
+	getPlan := func(i int) {
+		workdir := workdirs[i]
+		planPath := filepath.Join(workdir, planFilename)
+
+		os.Stderr.WriteString(pretty.Colorf("reading Terraform plan from %s...", (*pretty.Summarizer).StyledModule(nil, planPath)) + "\n")
+
+		workdirOptions := append(
+			[]terraform.Option{terraform.WithWorkdir(workdir)},
+			options...,
+		)
+
+		jsonPlan, err := terraform.GetPlanFromFile(ctx, planPath, workdirOptions...)
+		if err != nil {
+			results[i].err = fmt.Errorf("failed to read plan from %q: %w", planPath, err)
+			return
+		}
+
+		plan, err := engine.SummarizeJSONPlan(workdir, jsonPlan)
+		if err != nil {
+			results[i].err = fmt.Errorf("failed to summarize plan from %q: %w", planPath, err)
 			return
 		}
 

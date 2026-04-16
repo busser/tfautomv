@@ -356,7 +356,92 @@ inputs = {
 	assert.Equal(t, 0, changeCount)
 }
 
+func TestE2E_OpenTofu(t *testing.T) {
+	checkOpentofuAvailable(t)
+
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+resource "random_pet" "original_third" {
+	length = 3
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	length = 3
+}`
+
+	writeCode(t, codePath, originalCode)
+	opentofuInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	runTfautomvPipeSh(t, workdir, []string{"--terraform-bin=tofu"})
+
+	changeCount := countPlannedChanges(opentofuPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+func TestE2E_OpenTofuOutputCommands(t *testing.T) {
+	checkOpentofuAvailable(t)
+
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}
+resource "random_pet" "original_third" {
+	length = 3
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}
+resource "random_pet" "refactored_third" {
+	length = 3
+}`
+
+	writeCode(t, codePath, originalCode)
+	opentofuInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	commands := runTfautomv(t, workdir, []string{
+		"--terraform-bin=tofu",
+		"--output=commands"})
+	assert.NotEmpty(t, commands)
+	assert.Contains(t, commands, "tofu state mv")
+	assert.NotContains(t, commands, "terraform state mv")
+	assert.NoFileExists(t, filepath.Join(workdir, "moves.tf"))
+	runShellCommands(t, workdir, commands)
+
+	changeCount := countPlannedChanges(opentofuPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
 func TestE2E_TerraformCloud(t *testing.T) {
+	checkTerraformCloudAvailable(t)
+
 	tfVersion := terraformVersion(t)
 	if tfVersion.LessThan(version.Must(version.NewVersion("1.6"))) {
 		t.Skip("tfautomv requires Terraform 1.6 or later to run this test")
@@ -504,4 +589,166 @@ resource "random_pet" "refactored_second" {
 	changeCount += countPlannedChanges(terraformPlan(t, workdirB))
 	changeCount += countPlannedChanges(terraformPlan(t, workdirC))
 	assert.Equal(t, 0, changeCount)
+}
+
+// Test --preplanned flag with single directory and default plan file name
+func TestE2E_Preplanned_SingleDirectory_DefaultFile(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}`
+
+	// Set up infrastructure
+	writeCode(t, codePath, originalCode)
+	terraformInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	// Create plan file
+	createPlanFile(t, workdir, "tfplan.bin")
+
+	// Run tfautomv with --preplanned (default filename)
+	runTfautomvPipeSh(t, workdir, []string{"--preplanned"})
+
+	// Verify no changes needed
+	changeCount := countPlannedChanges(terraformPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+// Test --preplanned flag with custom plan file name
+func TestE2E_Preplanned_SingleDirectory_CustomFile(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}`
+
+	// Set up infrastructure
+	writeCode(t, codePath, originalCode)
+	terraformInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	// Create plan file with custom name
+	createPlanFile(t, workdir, "my-plan.bin")
+
+	// Run tfautomv with custom plan file
+	runTfautomvPipeSh(t, workdir, []string{"--preplanned", "--preplanned-file=my-plan.bin"})
+
+	// Verify no changes needed
+	changeCount := countPlannedChanges(terraformPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+// Test --preplanned flag with JSON plan file
+func TestE2E_Preplanned_JSONPlanFile(t *testing.T) {
+	workdir := t.TempDir()
+	codePath := filepath.Join(workdir, "main.tf")
+
+	originalCode := `
+resource "random_pet" "original_first" {
+	length = 1
+}
+resource "random_pet" "original_second" {
+	length = 2
+}`
+
+	refactoredCode := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}
+resource "random_pet" "refactored_second" {
+	length = 2
+}`
+
+	// Set up infrastructure
+	writeCode(t, codePath, originalCode)
+	terraformInitAndApply(t, workdir)
+	writeCode(t, codePath, refactoredCode)
+
+	// Create JSON plan file
+	createJSONPlanFile(t, workdir, "tfplan.json")
+
+	// Run tfautomv with JSON plan file
+	runTfautomvPipeSh(t, workdir, []string{"--preplanned", "--preplanned-file=tfplan.json"})
+
+	// Verify no changes needed
+	changeCount := countPlannedChanges(terraformPlan(t, workdir))
+	assert.Equal(t, 0, changeCount)
+}
+
+// Test --preplanned flag with multiple directories
+func TestE2E_Preplanned_MultipleDirectories(t *testing.T) {
+	tfVersion := terraformVersion(t)
+	if tfVersion.LessThan(version.Must(version.NewVersion("0.14"))) {
+		t.Skip("tfautomv requires Terraform 0.14 or later to run this test")
+	}
+
+	workdirA := t.TempDir()
+	workdirB := t.TempDir()
+	codePathA := filepath.Join(workdirA, "main.tf")
+	codePathB := filepath.Join(workdirB, "main.tf")
+
+	originalCodeA := `
+resource "random_pet" "original_first" {
+	length = 1
+}`
+	originalCodeB := `
+resource "random_pet" "original_second" {
+	length = 2
+}`
+
+	refactoredCodeA := `
+resource "random_pet" "refactored_first" {
+	length = 1
+}`
+	refactoredCodeB := `
+resource "random_pet" "refactored_second" {
+	length = 2
+}`
+
+	// Set up infrastructure in both directories
+	writeCode(t, codePathA, originalCodeA)
+	writeCode(t, codePathB, originalCodeB)
+	terraformInitAndApply(t, workdirA)
+	terraformInitAndApply(t, workdirB)
+	writeCode(t, codePathA, refactoredCodeA)
+	writeCode(t, codePathB, refactoredCodeB)
+
+	// Create plan files in both directories
+	createPlanFile(t, workdirA, "tfplan.bin")
+	createPlanFile(t, workdirB, "tfplan.bin")
+
+	// Run tfautomv with --preplanned on multiple directories
+	runTfautomvPipeSh(t, t.TempDir(), []string{"--preplanned", workdirA, workdirB})
+
+	// Verify no changes needed in either directory
+	changeCountA := countPlannedChanges(terraformPlan(t, workdirA))
+	changeCountB := countPlannedChanges(terraformPlan(t, workdirB))
+	assert.Equal(t, 0, changeCountA+changeCountB)
 }

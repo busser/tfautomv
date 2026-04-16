@@ -3,6 +3,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
@@ -20,6 +21,7 @@ const (
 	tfautomvBin   = "../../bin/tfautomv"
 	terraformBin  = "terraform"
 	terragruntBin = "terragrunt"
+	opentofuBin   = "tofu"
 )
 
 func writeCode(t *testing.T, path string, code string) {
@@ -52,6 +54,27 @@ func runVersion(t *testing.T, executable string) *version.Version {
 func terraformVersion(t *testing.T) *version.Version {
 	t.Helper()
 	return runVersion(t, terraformBin)
+}
+
+func opentofuVersion(t *testing.T) *version.Version {
+	t.Helper()
+	return runVersion(t, opentofuBin)
+}
+
+func checkOpentofuAvailable(t *testing.T) {
+	t.Helper()
+	_, err := exec.LookPath(opentofuBin)
+	if err != nil {
+		t.Skipf("OpenTofu binary %q not found in PATH", opentofuBin)
+	}
+}
+
+func checkTerraformCloudAvailable(t *testing.T) {
+	t.Helper()
+	token := os.Getenv("TERRAFORM_CLOUD_TOKEN")
+	if token == "" {
+		t.Skip("TERRAFORM_CLOUD_TOKEN environment variable not set")
+	}
 }
 
 func runInit(t *testing.T, workdir, executable string) {
@@ -105,6 +128,11 @@ func terragruntInitAndApply(t *testing.T, workdir string) {
 	runInitAndApply(t, workdir, terragruntBin)
 }
 
+func opentofuInitAndApply(t *testing.T, workdir string) {
+	t.Helper()
+	runInitAndApply(t, workdir, opentofuBin)
+}
+
 func runPlan(t *testing.T, workdir, executable string) *tfjson.Plan {
 	t.Helper()
 
@@ -141,6 +169,11 @@ func terraformPlan(t *testing.T, workdir string) *tfjson.Plan {
 func terragruntPlan(t *testing.T, workdir string) *tfjson.Plan {
 	t.Helper()
 	return runPlan(t, workdir, terragruntBin)
+}
+
+func opentofuPlan(t *testing.T, workdir string) *tfjson.Plan {
+	t.Helper()
+	return runPlan(t, workdir, opentofuBin)
 }
 
 func runTfautomv(t *testing.T, workdir string, args []string) string {
@@ -205,4 +238,61 @@ func countPlannedChanges(plan *tfjson.Plan) int {
 	}
 
 	return count
+}
+
+// createPlanFile creates a terraform plan file in the given directory
+func createPlanFile(t *testing.T, workdir, filename string) {
+	t.Helper()
+
+	runner, err := tfexec.NewTerraform(workdir, terraformBin)
+	if err != nil {
+		t.Fatalf("could not create terraform runner: %v", err)
+	}
+
+	planPath := filepath.Join(workdir, filename)
+	t.Logf("Creating plan file at %s", planPath)
+
+	_, err = runner.Plan(context.Background(), tfexec.Out(planPath))
+	if err != nil {
+		t.Fatalf("terraform plan failed: %v", err)
+	}
+}
+
+// createJSONPlanFile creates a JSON terraform plan file in the given directory
+func createJSONPlanFile(t *testing.T, workdir, filename string) {
+	t.Helper()
+
+	runner, err := tfexec.NewTerraform(workdir, terraformBin)
+	if err != nil {
+		t.Fatalf("could not create terraform runner: %v", err)
+	}
+
+	// First create a binary plan file
+	tempPlanPath := filepath.Join(workdir, "temp.plan")
+	_, err = runner.Plan(context.Background(), tfexec.Out(tempPlanPath))
+	if err != nil {
+		t.Fatalf("terraform plan failed: %v", err)
+	}
+
+	// Convert to JSON using terraform show
+	plan, err := runner.ShowPlanFile(context.Background(), tempPlanPath)
+	if err != nil {
+		t.Fatalf("terraform show failed: %v", err)
+	}
+
+	// Write JSON to the target file
+	jsonPath := filepath.Join(workdir, filename)
+	jsonData, err := json.Marshal(plan)
+	if err != nil {
+		t.Fatalf("failed to marshal plan to JSON: %v", err)
+	}
+
+	t.Logf("Creating JSON plan file at %s", jsonPath)
+	err = os.WriteFile(jsonPath, jsonData, 0644)
+	if err != nil {
+		t.Fatalf("failed to write JSON plan file: %v", err)
+	}
+
+	// Clean up temp file
+	os.Remove(tempPlanPath)
 }
