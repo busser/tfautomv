@@ -67,7 +67,7 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - name: Install OpenTofu
-        uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v2
         with:
           tofu_version: ${{ matrix.opentofu-version }}
           tofu_wrapper: false
