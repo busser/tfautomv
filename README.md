@@ -1,114 +1,39 @@
-# tfautomv <!-- omit in toc -->
+# tfautomv
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![GitHub release](https://img.shields.io/github/release/busser/tfautomv.svg)](https://github.com/busser/tfautomv/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/busser/tfautomv)](https://goreportcard.com/report/github.com/busser/tfautomv)
 
-Generate `moved` blocks and state move commands automatically for Terraform, OpenTofu, and Terragrunt.
+Generate `moved` blocks and state move commands automatically for Terraform and OpenTofu.
 
-- [Why?](#why)
-- [Best Practices](#best-practices)
-  - [✅ Good use cases (pure refactoring)](#-good-use-cases-pure-refactoring)
-  - [❌ Problematic use cases (infrastructure changes)](#-problematic-use-cases-infrastructure-changes)
-  - [Recommended workflow](#recommended-workflow)
-- [Requirements](#requirements)
-- [Installation](#installation)
-  - [Homebrew](#homebrew)
-  - [Yay](#yay)
-  - [asdf](#asdf)
-  - [Shell script](#shell-script)
-  - [Download](#download)
-  - [From source](#from-source)
-- [Usage](#usage)
-  - [Quick Start](#quick-start)
-  - [Core Features](#core-features)
-    - [Generating `moved` blocks](#generating-moved-blocks)
-    - [Generating `terraform state mv` commands](#generating-terraform-state-mv-commands)
-    - [Finding moves across multiple directories](#finding-moves-across-multiple-directories)
-  - [Advanced Features](#advanced-features)
-    - [Performance optimization](#performance-optimization)
-    - [Debugging and verbosity](#debugging-and-verbosity)
-  - [Ignoring certain differences](#ignoring-certain-differences)
-    - [⚠️ Important considerations when using `--ignore`](#️-important-considerations-when-using---ignore)
-    - [The `everything` kind](#the-everything-kind)
-    - [The `whitespace` kind](#the-whitespace-kind)
-    - [The `prefix` kind](#the-prefix-kind)
-    - [Referencing nested attributes](#referencing-nested-attributes)
-    - [Examples: When to use and avoid `--ignore`](#examples-when-to-use-and-avoid---ignore)
-  - [Tool Integration](#tool-integration)
-    - [Passing additional arguments to Terraform](#passing-additional-arguments-to-terraform)
-    - [Using Terragrunt instead of Terraform](#using-terragrunt-instead-of-terraform)
-    - [Using OpenTofu instead of Terraform](#using-opentofu-instead-of-terraform)
-    - [Using other Terraform-compatible tools](#using-other-terraform-compatible-tools)
-  - [Enterprise \& CI/CD](#enterprise--cicd)
-    - [Using existing plan files](#using-existing-plan-files)
-    - [Single directory with default plan file](#single-directory-with-default-plan-file)
-    - [Single directory with custom plan file](#single-directory-with-custom-plan-file)
-    - [Multiple directories](#multiple-directories)
-    - [JSON vs binary plan files](#json-vs-binary-plan-files)
-  - [Disabling colors in output](#disabling-colors-in-output)
-- [Thanks](#thanks)
-- [License](#license)
+> [!NOTE]
+> **Status: stable.** Used in production. Maintenance is mostly dependency updates: no new features are planned, but bug reports are welcome. Still v0.x because some internals may change in major ways before 1.0.
 
-## Why?
+When you rename or move a resource in your Terraform code, Terraform loses track of the resource's state. The next plan shows the original resource being destroyed and a "new" one created in its place. `tfautomv` inspects the plan, detects these create/delete pairs, and writes [`moved` blocks](https://developer.hashicorp.com/terraform/language/modules/develop/refactoring#moved-block-syntax) (or `terraform state mv` commands) so Terraform updates state in place without touching infrastructure.
 
-`tfautomv` (a.k.a Terraform auto-move) is a refactoring helper. With it, making
-structural changes to your Terraform codebase becomes much easier.
+For example, after renaming `aws_instance.web` to `aws_instance.web_server`:
 
-When you move a resource in your code, Terraform loses track of the resource's
-state. The next time you run Terraform, it will plan to delete the resource it
-has memory of and create the "new" resource it found in your refactored code.
+```terraform
+resource "aws_instance" "web_server" {
+  ami           = "ami-12345"
+  instance_type = "t2.micro"
+}
+```
 
-`tfautomv` inspects the output of `terraform plan`, detects such
-creation/deletion pairs and writes a [`moved` block](https://developer.hashicorp.com/terraform/language/modules/develop/refactoring#moved-block-syntax)
-so that Terraform now knows no deletion or creation is required.
+Running `tfautomv` produces a `moves.tf` file:
 
-We explain why we built tfautomv in more detail [in this blog article](https://www.padok.fr/en/blog/terraform-refactoring-tfautomv).
+```terraform
+moved {
+  from = aws_instance.web
+  to   = aws_instance.web_server
+}
+```
 
-Here's a quick view of what `tfautomv` does:
+The next `terraform plan` shows no changes.
 
 ![demo](./docs/demo.gif)
 
-## Best Practices
-
-`tfautomv` is designed for **refactoring scenarios** where you want to restructure your Terraform code without changing the actual infrastructure. Understanding this distinction is crucial for successful usage.
-
-### ✅ Good use cases (pure refactoring)
-
-- **Renaming resources**: `aws_instance.web` → `aws_instance.web_server`
-- **Moving resources between modules**: `aws_instance.web` → `module.ec2.aws_instance.web`
-- **Changing resource organization**: Converting single resources to `for_each` loops
-- **Module restructuring**: Moving resources between different modules
-
-### ❌ Problematic use cases (infrastructure changes)
-
-- **Changing resource configuration**: Removing or adding attributes like `tags`, `security_groups`, etc.
-- **Combining refactoring with configuration changes**: Renaming AND modifying attributes in the same operation
-- **Provider-specific transformations**: Changes where the provider modifies attribute values
-
-### Recommended workflow
-
-1. **First, make structural changes only**: Rename resources, move between modules, or restructure without changing any resource attributes
-2. **Run tfautomv**: Generate the appropriate `moved` blocks or `terraform state mv` commands
-3. **Apply the moves**: This should result in an empty or minimal plan showing no infrastructure changes
-4. **Then make configuration changes**: In a separate step, modify resource attributes as needed
-
-This approach ensures that moves represent safe refactoring operations separate from infrastructure changes.
-
-## Requirements
-
-`tfautomv` uses the Terraform CLI command under the hood. This allows it to work
-with any Terraform version reliably.
-
-Certain features require specific versions of Terraform:
-
-- `moved` blocks require Terraform v1.1 or above
-- cross-module `terraform state mv` commands require Terraform v0.14 or above
-- single-module `terraform state mv` commands require Terraform v0.13 or above
-
 ## Installation
-
-_Contributions to support other installation methods are welcome!_
 
 ### Homebrew
 
@@ -116,22 +41,6 @@ On MacOS or Linux:
 
 ```bash
 brew install busser/tap/tfautomv
-```
-
-### Yay
-
-On Arch Linux:
-
-```bash
-yay tfautomv-bin
-```
-
-### asdf
-
-With asdf version manager:
-
-```bash
-asdf plugin add tfautomv https://github.com/busser/asdf-tfautomv.git
 ```
 
 ### Shell script
@@ -142,22 +51,26 @@ On MacOS or Linux:
 curl -sSfL https://raw.githubusercontent.com/busser/tfautomv/main/install.sh | sh
 ```
 
-_This script can probably support Windows with a small amount of work.
-Contributions welcome!_
+### Other methods
 
-### Download
+<details>
+<summary>Yay (Arch Linux), asdf, manual download, from source</summary>
 
-On the Github repository's [Releases page](https://github.com/busser/tfautomv/releases),
-download the binary that matches your workstation's OS and CPU architecture.
+**Yay** (Arch Linux):
 
-Put the binary in a directory present in your system's `PATH` environment
-variable.
+```bash
+yay tfautomv-bin
+```
 
-### From source
+**asdf** version manager:
 
-You must have Go 1.18+ installed to compile tfautomv.
+```bash
+asdf plugin add tfautomv https://github.com/busser/asdf-tfautomv.git
+```
 
-Clone the repository and build the binary:
+**Manual download:** grab a binary from the [Releases page](https://github.com/busser/tfautomv/releases) and put it in a directory on your `PATH`.
+
+**From source** (requires Go 1.18+):
 
 ```bash
 git clone https://github.com/busser/tfautomv
@@ -165,191 +78,106 @@ cd tfautomv
 make build
 ```
 
-Then, move `bin/tfautomv` to a directory resent in your system's `PATH`
-environment variable.
+Then move `bin/tfautomv` to a directory on your `PATH`.
+
+_Contributions to support other installation methods, including Windows for the shell script, are welcome._
+
+</details>
 
 ## Usage
 
-### Quick Start
-
-**Basic usage** - run in any directory where you would run `terraform plan`:
+Run `tfautomv` in any directory where you would run `terraform plan`:
 
 ```bash
 tfautomv
 ```
 
-This will run `terraform init`, `terraform refresh`, and `terraform plan`, then write `moved` blocks to a `moves.tf` file.
-
-You can also target a specific working directory:
+This runs `terraform init`, `terraform refresh`, and `terraform plan`, then writes `moved` blocks to a `moves.tf` file. You can also target a specific working directory:
 
 ```bash
 tfautomv ./production
 ```
 
-### Core Features
+### Output formats
 
-#### Generating `moved` blocks
-
-By default, tfautomv generates `moved` blocks when possible:
-
-```bash
-tfautomv
-```
-
-Force `moved` blocks only with the `--output=blocks` flag:
+By default, tfautomv writes `moved` blocks. Force `moved` blocks only with `--output=blocks`:
 
 ```bash
 tfautomv --output=blocks
 ```
 
-#### Generating `terraform state mv` commands
-
-Force `terraform state mv` commands only with the `--output=commands` flag:
+Force `terraform state mv` commands with `--output=commands`. The commands are printed to stdout, so you can review them, save them to a file, or pipe to a shell:
 
 ```bash
-tfautomv --output=commands
+tfautomv --output=commands              # print to stdout
+tfautomv --output=commands > moves.sh   # save to a file
+tfautomv --output=commands | sh         # run immediately
 ```
 
-This will print commands to standard output. You can copy and paste them to a
-terminal to run them manually.
+`-o` is shorthand for `--output`.
 
-Alternatively, you can write the commands to a file:
+### Moving resources across directories
 
-```bash
-tfautomv --output=commands > moves.sh
-```
-
-Or pipe them into a shell to run them immediately:
-
-```bash
-tfautomv --output=commands | sh
-```
-
-The `-o` flag is shorthand for `--output`:
-
-```bash
-tfautomv -o commands
-```
-
-#### Finding moves across multiple directories
-
-If you have multiple Terraform modules in different directories, you can pass
-those directories to `tfautomv`:
+If you have multiple Terraform modules in different directories, pass them all to `tfautomv`:
 
 ```bash
 tfautomv ./production/main ./production/backup -o commands
 ```
 
-This will run `terraform init`, `terraform refresh`, and `terraform plan` in
-each directory, and then write `terraform state mv` commands to standard output.
-These commands will move resources within and across directories as needed.
+This runs `terraform init`, `refresh`, and `plan` in each directory, then writes `terraform state mv` commands to standard output. The commands move resources within and across directories as needed.
 
-Terraform does not natively support moving resources across directories. To
-achieve this, `tfautomv` will output commands that pull copies of each
-directory's state, perform the moves, and then push the new state back to the
-directory's state backend.
+Terraform does not natively support moving resources across directories. To work around this, the generated commands pull copies of each directory's state, perform the moves locally, and push the new state back. You can pass as many directories as you want.
 
-You can pass as many directories as you want to `tfautomv`.
+This requires the `commands` output format. Terraform's `moved` block syntax does not support cross-directory moves.
 
-This is only compatible with the `commands` output format. Terraform's `moved`
-block syntax does not support moving resources across directories.
+### Skipping init and refresh
 
-### Advanced Features
-
-#### Performance optimization
-
-By default, `tfautomv` runs Terraform's `init`, `refresh`, and `plan` steps.
-To save time, you can skip the `init` or `refresh` steps with the `--skip-init`
-and `--skip-refresh` flags:
+`tfautomv` runs `init` and `refresh` by default. To skip them and iterate faster:
 
 ```bash
 tfautomv --skip-init --skip-refresh
-```
-
-The `-s` flag is shorthand for `--skip-init` and `-S` for `--skip-refresh:
-
-```bash
+# or, equivalently:
 tfautomv -sS
 ```
 
-#### Debugging and verbosity
+## Best practices
 
-If you are not seeing a `moved` block for a resource you expected to be moved,
-you can increase `tfautomv`'s verbosity with the `-v` flag to get more
-information:
+`tfautomv` is for **pure refactoring**: restructuring code without changing infrastructure. Mixing refactoring with configuration changes (renaming a resource AND modifying its tags in the same step, for example) leads to bad matches or surprise infrastructure changes.
 
-```bash
-tfautomv -v
-```
+Recommended workflow:
 
-The default verbosity level is 0. You can increase the verbosity up to 3 by
-repeating the `-v` flag:
+1. Make structural changes only (rename, move between modules, switch to `for_each`).
+2. Run `tfautomv` and apply the resulting moves. Plan should show no infrastructure changes.
+3. In a separate change, modify resource attributes as needed.
+
+## Debugging unmatched resources
+
+If a resource you expected to be matched is not, increase verbosity with `-v` (up to `-vvv`) to see why:
 
 ```bash
 tfautomv -vvv
 ```
 
-Alternatively, you can specify a specific verbosity level with the `--verbosity`
-flag:
-
-```bash
-tfautomv --verbosity=2
-```
-
-Based on why the resource was not moved, you can choose to edit your code,
-write a `moved` block manually, or use the `-ignore` flag to ignore certain
-differences.
-
 |                     level 0 (default)                     |                      level 1 (`-v`)                       |                      level 2 (`-vv`)                      |                     level 3 (`-vvv`)                      |
 | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: |
 | ![verbosity level 0](./docs/images/verbosity/level-0.png) | ![verbosity level 1](./docs/images/verbosity/level-1.png) | ![verbosity level 2](./docs/images/verbosity/level-2.png) | ![verbosity level 3](./docs/images/verbosity/level-3.png) |
 
-### Ignoring certain differences
+The output shows which attributes differ between create/delete pairs. Based on what you see, you can edit your code, write a `moved` block manually, or use `--ignore` (below) to skip specific differences.
 
-`tfautomv` works by comparing resources Terraform plans to create (those in your
-code) to those Terraform plans to delete (those in your state). Sometimes,
-`tfautomv` may not be able to match two resources together because of a
-difference in a specific attribute, even though the resources are in fact the
-same. This usually happens when the Terraform provider that manages the resource
-has transformed the attribute's value in some way.
+## Ignoring differences
 
-In those cases, you can use the `-ignore` flag to ignore specific differences.
-`tfautomv` will ignore differences based on a set of rules that you can
-provide.
+`tfautomv` matches resources by comparing all their attributes. Sometimes a Terraform provider transforms an attribute's value (normalizing JSON whitespace, adding a prefix, etc.) so the value in your code never matches the value in state. The `--ignore` flag tells tfautomv to skip specific attributes during comparison.
 
-#### ⚠️ Important considerations when using `--ignore`
+> [!WARNING]
+> Use `--ignore` for **provider quirks**, not for **configuration changes you made on purpose**. Forcing a match by ignoring an attribute you intended to change can produce unintended infrastructure changes when the move is applied. If you find yourself reaching for `--ignore` because you changed a value, that's a sign refactoring and configuration changes have been mixed: separate them (see [Best practices](#best-practices)).
 
-The `--ignore` flag tells tfautomv to act as if certain attributes don't exist when comparing resources. While powerful, this comes with risks:
-
-- **Risk of incorrect matches**: If ignored attributes are actually important for identifying the correct resource pairing, tfautomv may match unrelated resources or fail to find matches
-- **Intended for provider quirks**: Use primarily when providers transform attribute values in ways that don't reflect actual infrastructure changes
-- **Not for configuration changes**: Avoid using `--ignore` to force matches when you've intentionally changed resource configuration
-
-**Good use cases for `--ignore`**:
-
-- Provider transforms whitespace in policy documents
-- Provider adds computed fields that weren't in the original configuration
-- Provider normalizes values (e.g., adding default ports to security group rules)
-
-**Problematic use cases for `--ignore`**:
-
-- Forcing matches when you've intentionally changed tags, security groups, or other meaningful attributes
-- Ignoring differences that represent real infrastructure changes you made
-
-Each rule includes:
-
-- A _kind_ that identifies the nature of the difference to ignore
-- A _resource type_ the rule applies to
-- An _attribute_ inside the resource the rule applies to
-- Optionally, additional arguments specific to the class
-
-A rule is written as a colon-separated string:
+A rule looks like this:
 
 ```plaintext
 <KIND>:<RESOURCE TYPE>:<ATTRIBUTE NAME>[:<KIND ARGUMENTS>]
 ```
 
-You can use the `--ignore` flag multiple times to provide multiple rules:
+You can pass `--ignore` multiple times:
 
 ```bash
 tfautomv \
@@ -357,43 +185,18 @@ tfautomv \
   --ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
 ```
 
-_If you have a use case that is not covered by existing kinds, please open an
-issue so we can track demand for it._
+### Available kinds
 
-#### The `everything` kind
+- **`everything`**: ignore any difference. Example: `--ignore="everything:random_pet:length"`
+- **`whitespace`**: ignore whitespace differences (useful for provider-formatted JSON or XML). Example: `--ignore="whitespace:aws_iam_policy:policy"`
+- **`prefix`**: strip a fixed prefix before comparing. Example: `--ignore="prefix:google_storage_bucket_iam_member:bucket:b/"`
 
-Use the `everything` kind to ignore any difference between two values of an
-attribute:
+<details>
+<summary>Detailed examples for each kind</summary>
 
-```bash
-tfautomv --ignore="everything:<RESOURCE TYPE>:<ATTRIBUTE>"
-```
-
-For example:
-
-```bash
-tfautomv --ignore="everything:random_pet:length"
-```
-
-#### The `whitespace` kind
-
-Use the `whitespace` kind to ignore differences in whitespace between two
-values of an attribute:
-
-```bash
-tfautomv --ignore="whitespace:<RESOURCE TYPE>:<ATTRIBUTE NAME>"
-```
-
-For example, this rule:
-
-```bash
-tfautomv --ignore="whitespace:azurerm_api_management_policy:xml_content"
-```
-
-will allow these two resources to match:
+**`whitespace`** allows these two resources to match despite different formatting:
 
 ```terraform
-# This resource has its XML nicely formatted.
 resource "azurerm_api_management_policy" "foo" {
   api_management_id = "..."
 
@@ -408,7 +211,6 @@ resource "azurerm_api_management_policy" "foo" {
   EOT
 }
 
-# This resource has its XML on one line.
 resource "azurerm_api_management_policy" "bar" {
   api_management_id = "..."
 
@@ -416,208 +218,115 @@ resource "azurerm_api_management_policy" "bar" {
 }
 ```
 
-#### The `prefix` kind
+**`prefix`** with `b/` strips that prefix before comparing the `bucket` attribute, useful when a provider stores `b/my-bucket` in state but the configuration sets `my-bucket`.
 
-Use the `prefix` kind to ignore a specific prefix between in one of two values
-of an attribute:
+</details>
 
-```bash
-tfautomv --ignore="prefix:<RESOURCE TYPE>:<ATTRIBUTE NAME>:<PREFIX>"
-```
+If you have a use case the existing kinds don't cover, please open an issue so we can track demand.
 
-For example:
+### Nested attributes
 
-```bash
-tfautomv --ignore="prefix:google_storage_bucket_iam_member:bucket:b/"
-```
-
-will strip the `b/` prefix from the `bucket` attribute of any
-`google_storage_bucket_iam_member` resources before comparing the attirbute's
-values.
-
-#### Referencing nested attributes
-
-Join parent attributes with child attributes with a `.`:
+Join parent and child attributes with `.`:
 
 ```plaintext
 <KIND>:<RESOURCE TYPE>:parent_obj.child_field
 <KIND>:<RESOURCE TYPE>:parent_list.0
 ```
 
-To get an attribute's full path, increase the verbosity level with the `-v`
-flag:
+To find an attribute's full path, run `tfautomv -vvv` and read the verbosity output.
 
-```bash
-tfautomv -vvv
-```
+## Tool integration
 
-#### Examples: When to use and avoid `--ignore`
+### Passing extra arguments to Terraform
 
-**✅ Good example - Provider-transformed attribute**:
-
-```bash
-# Provider normalizes JSON policy formatting
-tfautomv --ignore="whitespace:aws_iam_policy:policy"
-```
-
-**✅ Good example - Provider adds computed fields**:
-
-```bash
-# Provider adds computed "arn" or "id" fields that weren't in configuration
-tfautomv --ignore="everything:aws_s3_bucket:arn"
-```
-
-**❌ Problematic example - Intentional configuration change**:
-
-```bash
-# DON'T do this - you've intentionally changed tags
-# This forces a match that may result in unintended infrastructure changes
-tfautomv --ignore="everything:aws_instance:tags"
-
-# Instead: Apply moves first, then change tags in a separate operation
-```
-
-**❌ Problematic example - Mixing refactoring with changes**:
-
-```terraform
-# Before (applied to infrastructure):
-resource "aws_instance" "web" {
-  ami           = "ami-12345"
-  instance_type = "t2.micro"
-  tags = {
-    Environment = "prod"
-    Team        = "backend"
-  }
-}
-
-# After (refactored AND changed):
-resource "aws_instance" "web_server" {  # renamed
-  ami           = "ami-12345"
-  instance_type = "t2.micro"
-  tags = {
-    Environment = "production"  # changed value
-    Team        = "backend"
-    Project     = "website"     # added new tag
-  }
-}
-
-# DON'T use --ignore here - this mixes refactoring with real changes
-# Instead: rename first, apply moves, then modify tags separately
-```
-
-### Tool Integration
-
-#### Passing additional arguments to Terraform
-
-You can pass additional arguments to Terraform by using Terraform's built-in
-[`TF_CLI_ARGS` and `TF_CLI_ARGS_name` environment variables.](https://www.terraform.io/cli/config/environment-variables#tf_cli_args-and-tf_cli_args_name).
-
-For example, in order to use a file of variables during Terraform's plan:
+Use Terraform's built-in [`TF_CLI_ARGS` and `TF_CLI_ARGS_name` environment variables](https://www.terraform.io/cli/config/environment-variables#tf_cli_args-and-tf_cli_args_name). For example:
 
 ```bash
 TF_CLI_ARGS_plan="-var-file=production.tfvars" tfautomv
 ```
 
-#### Using Terragrunt instead of Terraform
+### OpenTofu
 
-You can tell `tfautomv` to use the Terragrunt CLI instead of the Terraform CLI
-with the `--terraform-bin` flag:
-
-```bash
-tfautomv --terraform-bin=terragrunt
-```
-
-#### Using OpenTofu instead of Terraform
-
-OpenTofu is officially supported! You can use OpenTofu with the `--terraform-bin` flag:
+OpenTofu is supported out of the box via the `--terraform-bin` flag:
 
 ```bash
 tfautomv --terraform-bin=tofu
 ```
 
-This works with all tfautomv features including `moved` blocks, `tofu state mv` commands, and the `--preplanned` flag.
+This works with all features, including `moved` blocks, `tofu state mv` commands, and `--preplanned`.
 
-#### Using other Terraform-compatible tools
+### Terragrunt
 
-The `--terraform-bin` flag works with any executable that has an `init` and `plan` command compatible with Terraform.
+Terragrunt does not work directly with `--terraform-bin=terragrunt` because Terragrunt's CLI does not behave identically to Terraform's. A wrapper script can bridge the gap. See [issue #127](https://github.com/busser/tfautomv/issues/127) for the current discussion and an example wrapper.
 
-### Enterprise & CI/CD
+### Other Terraform-compatible tools
 
-#### Using existing plan files
+The `--terraform-bin` flag works with any executable that exposes `init` and `plan` commands compatible with Terraform.
 
-If you have already generated Terraform plan files, you can use them directly with the `--preplanned` flag instead of having tfautomv run `terraform plan`. This is useful for:
+## Using existing plan files
 
-- **Performance**: Avoid re-running expensive plan operations when iterating on `--ignore` rules
-- **Enterprise environments**: Where running terraform locally is complex due to secrets or remote state
-- **CI/CD workflows**: Where plans are generated in earlier pipeline stages
-- **Remote workspaces**: TFE/Cloud environments where you can download JSON plans but can't run terraform locally
+If you've already generated Terraform plan files, the `--preplanned` flag tells tfautomv to use them instead of running `terraform plan`. This is useful for:
 
-#### Single directory with default plan file
+- **Performance**: avoid re-running plans while iterating on `--ignore` rules.
+- **Enterprise environments**: where running Terraform locally is impractical due to secrets or remote state.
+- **CI/CD workflows**: where plans are generated in earlier pipeline stages.
+- **Remote workspaces** (TFE/Cloud): where you can download JSON plans but can't run Terraform locally.
 
-First generate a plan file, then run tfautomv:
+Basic usage:
 
 ```bash
 terraform plan -out=tfplan.bin
 tfautomv --preplanned
 ```
 
-#### Single directory with custom plan file
+<details>
+<summary>Custom file paths, multiple directories, JSON vs binary plans</summary>
+
+**Custom plan file path:**
 
 ```bash
 terraform plan -out=my-plan.bin
 tfautomv --preplanned --preplanned-file=my-plan.bin
 ```
 
-#### Multiple directories
-
-Each directory must have its own plan file:
+**Multiple directories** (each must have its own plan file):
 
 ```bash
-# Generate plans in each directory
 (cd production && terraform plan -out=tfplan.bin)
 (cd staging && terraform plan -out=tfplan.bin)
-
-# Run tfautomv across both directories
 tfautomv --preplanned production staging
 ```
 
-#### JSON vs binary plan files
+**JSON vs binary plans.** tfautomv detects the format from the file extension:
 
-tfautomv automatically detects the plan file format:
-
-- **Binary plans** (default): tfautomv runs `terraform show -json` to convert them
-- **JSON plans** (`.json` extension): tfautomv reads them directly
+- Binary plans (default): tfautomv runs `terraform show -json` to convert them.
+- JSON plans (`.json` extension): read directly.
 
 ```bash
-# Binary plan (requires terraform show conversion)
-terraform plan -out=tfplan.bin
-tfautomv --preplanned
-
-# JSON plan (read directly) - useful for CI/CD or when you already have JSON
-terraform plan -out=tfplan.bin
 terraform show -json tfplan.bin > tfplan.json
 tfautomv --preplanned --preplanned-file=tfplan.json
 ```
 
-**Important**: When using `--preplanned`, all specified directories must have the plan file. If any directory is missing its plan file, tfautomv will exit with an error.
+If any specified directory is missing its plan file, tfautomv exits with an error.
 
-### Disabling colors in output
+</details>
 
-Add the `--no-color` flag to your `tfautomv` command to disable output
-formatting like colors, bold text, etc.
+## Disabling colors
 
-For example:
+Pass `--no-color` or set the `NO_COLOR` environment variable to any value:
 
 ```bash
 tfautomv --no-color
-```
-
-Alternatively, you can achieve the same result by setting the `NO_COLOR`
-environment variable to any value:
-
-```bash
 NO_COLOR=true tfautomv
 ```
+
+## Requirements
+
+`tfautomv` shells out to the Terraform (or OpenTofu) CLI, so it works with any compatible version. Specific features have minimum version requirements:
+
+- `moved` blocks: Terraform v1.1+
+- Cross-module `terraform state mv` commands: Terraform v0.14+
+- Single-module `terraform state mv` commands: Terraform v0.13+
 
 ## Thanks
 
@@ -625,4 +334,4 @@ Thanks to [Padok](https://www.padok.fr), where this project was born 💜
 
 ## License
 
-The code is licensed under the permissive Apache v2.0 license. [Read this](<https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)>) for a summary.
+Apache 2.0. [Summary](<https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)>).
