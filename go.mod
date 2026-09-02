@@ -11,14 +11,12 @@ require (
 	github.com/hashicorp/terraform-json v0.25.0
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/spf13/pflag v1.0.7
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 )
 
 require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/zclconf/go-cty v1.16.2 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
