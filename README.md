@@ -140,6 +140,35 @@ tfautomv --skip-init --skip-refresh
 tfautomv -sS
 ```
 
+### Migrating resources between plans
+
+Migration mode accepts any number of named Terraform plan files. It compares
+all planned deletes with all planned creates, including ordinary same-plan
+refactors. Matches are accepted only when both resources have exactly one
+candidate; ambiguous matches fail closed.
+
+```bash
+tfautomv \
+  --migration-plan=network=network/tfplan.json \
+  --migration-plan=application=application/tfplan.json \
+  --migration-dry-run
+```
+
+The dry run prints mappings such as
+`network:aws_security_group.web -> application:aws_security_group.app` and a
+summary of ambiguous and unmatched resources without writing files. Remove
+`--migration-dry-run` to generate one `*.tfautomv-migration.tf` file per named
+plan in the current directory. Same-plan matches become `moved` blocks;
+cross-plan matches become a destroy-free `removed` block in the old plan and
+an `import` block in the new plan.
+
+Use `--require-net-zero` to fail unless the supplied plans contain equal
+numbers of creates and deletes and every operation is matched. Resources with
+ambiguous matches always cause migration mode to fail. Cross-plan imports also
+require a state `id` in the source plan; provider-specific import identifiers
+that cannot be recovered from plan state must be supplied separately before
+applying the generated configuration.
+
 ## Best practices
 
 `tfautomv` is for **pure refactoring**: restructuring code without changing infrastructure. Mixing refactoring with configuration changes (renaming a resource AND modifying its tags in the same step, for example) leads to bad matches or surprise infrastructure changes.

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-version"
@@ -99,6 +100,10 @@ func run() error {
 		}
 
 		userRules = append(userRules, rule)
+	}
+
+	if len(migrationPlanSpecs) > 0 {
+		return runMigration(ctx, userRules)
 	}
 
 	/*
@@ -194,16 +199,20 @@ func run() error {
 
 // Flags
 var (
-	ignoreRules    []string
-	noColor        bool
-	outputFormat   string
-	printVersion   bool
-	skipInit       bool
-	skipRefresh    bool
-	terraformBin   string
-	verbosity      int
-	preplannedFile string
-	usePreplanned  bool
+	ignoreRules        []string
+	noColor            bool
+	outputFormat       string
+	printVersion       bool
+	skipInit           bool
+	skipRefresh        bool
+	terraformBin       string
+	verbosity          int
+	preplannedFile     string
+	usePreplanned      bool
+	migrationPlanSpecs []string
+	migrationDryRun    bool
+	requireNetZero     bool
+	migrationOutputDir string
 )
 
 func parseFlags() {
@@ -217,8 +226,93 @@ func parseFlags() {
 	flag.CountVarP(&verbosity, "verbosity", "v", "increase verbosity (can be specified multiple times)")
 	flag.BoolVar(&usePreplanned, "preplanned", false, "use existing plan files instead of running terraform plan")
 	flag.StringVar(&preplannedFile, "preplanned-file", "tfplan.bin", "plan file name when using --preplanned")
+	flag.StringSliceVar(&migrationPlanSpecs, "migration-plan", nil, "migration plan as name=path (repeat for each plan)")
+	flag.BoolVar(&migrationDryRun, "migration-dry-run", false, "show migration mappings without writing files")
+	flag.BoolVar(&requireNetZero, "require-net-zero", false, "fail migration mode unless creates and deletes balance and all resources match")
+	flag.StringVar(&migrationOutputDir, "migration-output-dir", ".", "directory for generated per-plan migration files")
 
 	flag.Parse()
+}
+
+// runMigration loads named plans, performs fail-closed matching, and writes
+// one configuration file per plan unless dry-run mode was requested.
+func runMigration(ctx context.Context, userRules []engine.Rule) error {
+	plans := make([]engine.Plan, 0, len(migrationPlanSpecs))
+	planIDs := make([]string, 0, len(migrationPlanSpecs))
+	for _, spec := range migrationPlanSpecs {
+		name, path, ok := strings.Cut(spec, "=")
+		if !ok || name == "" || path == "" {
+			return fmt.Errorf("invalid --migration-plan %q: expected name=path", spec)
+		}
+		jsonPlan, err := terraform.GetPlanFromFile(ctx, path, terraform.WithTerraformBin(terraformBin))
+		if err != nil {
+			return fmt.Errorf("failed to read migration plan %q: %w", spec, err)
+		}
+		plan, err := engine.SummarizeJSONPlan(name, jsonPlan)
+		if err != nil {
+			return fmt.Errorf("failed to summarize migration plan %q: %w", spec, err)
+		}
+		plans = append(plans, plan)
+		planIDs = append(planIDs, name)
+	}
+	analysis := engine.AnalyzeMigrations(plans, userRules)
+	printMigrationAnalysis(analysis)
+	if len(analysis.AmbiguousCreates) > 0 || len(analysis.AmbiguousDeletes) > 0 {
+		return fmt.Errorf("ambiguous migration matches found; refusing to generate state changes")
+	}
+	for _, migration := range analysis.Migrations {
+		if migration.SourcePlan != migration.DestinationPlan && migration.ImportID == "" {
+			return fmt.Errorf("cross-plan match %s:%s has no state ID for import", migration.SourcePlan, migration.SourceAddress)
+		}
+	}
+	if requireNetZero {
+		if err := analysis.ValidateNetZero(plans); err != nil {
+			return err
+		}
+	}
+	if migrationDryRun {
+		return nil
+	}
+	for _, planID := range planIDs {
+		path := filepath.Join(migrationOutputDir, safeMigrationFilename(planID)+".tf")
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to create migration file %q: %w", path, err)
+		}
+		err = terraform.WriteMigrationBlocksForPlan(file, analysis.Migrations, planID)
+		closeErr := file.Close()
+		if err != nil {
+			return fmt.Errorf("failed to write migration file %q: %w", path, err)
+		}
+		if closeErr != nil {
+			return fmt.Errorf("failed to close migration file %q: %w", path, closeErr)
+		}
+		fmt.Fprintf(os.Stderr, "migration blocks written to %s\n", path)
+	}
+	return nil
+}
+
+// printMigrationAnalysis keeps dry-run output compact while exposing every
+// safety diagnostic that can affect whether generated state changes are safe.
+func printMigrationAnalysis(analysis engine.MigrationAnalysis) {
+	for _, migration := range analysis.Migrations {
+		fmt.Printf("%s:%s -> %s:%s", migration.SourcePlan, migration.SourceAddress, migration.DestinationPlan, migration.DestinationAddr)
+		if migration.ImportID != "" {
+			fmt.Printf(" (id=%s)", migration.ImportID)
+		}
+		fmt.Println()
+	}
+	fmt.Printf("migrations: %d, ambiguous deletes: %d, ambiguous creates: %d, unmatched deletes: %d, unmatched creates: %d\n", len(analysis.Migrations), len(analysis.AmbiguousDeletes), len(analysis.AmbiguousCreates), len(analysis.UnmatchedDeletes), len(analysis.UnmatchedCreates))
+}
+
+// safeMigrationFilename turns a user-facing plan name into a predictable file
+// name without allowing path separators to escape the selected output folder.
+func safeMigrationFilename(planID string) string {
+	name := filepath.Base(filepath.Clean(planID))
+	if name == "." || name == string(filepath.Separator) || name == "" {
+		return "migration"
+	}
+	return strings.NewReplacer("/", "_", "\\", "_", " ", "_").Replace(name) + ".tfautomv-migration"
 }
 
 func engineMovesToTerraformMoves(moves []engine.Move) []terraform.Move {
