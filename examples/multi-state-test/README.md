@@ -25,8 +25,8 @@ For a cross-state test, move one complete resource declaration by copying its
 file and removing the original. For example:
 
 ```bash
-cp network/movable.tf application/movable.tf
-rm network/movable.tf
+cp network/gateway.tf application/gateway.tf
+rm network/gateway.tf
 ```
 
 Create fresh plans after the configuration change:
