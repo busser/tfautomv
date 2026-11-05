@@ -25,6 +25,8 @@ type Move struct {
 	FromAddress string
 	// The resource's address after the move.
 	ToAddress string
+	// The provider ID recorded in the source state for cross-state imports.
+	ImportID string
 }
 
 func (m Move) block() string {
@@ -58,6 +60,71 @@ func WriteMovedBlocks(w io.Writer, moves []Move) error {
 
 	_, err := w.Write([]byte(strings.Join(blocks, "\n") + "\n"))
 
+	return err
+}
+
+// WriteMigrationBlocks writes moved blocks for same-workdir moves and paired
+// removed/import blocks for moves between workdirs. Terraform recommends the
+// latter for new migrations between separate state files or remote backends.
+func WriteMigrationBlocks(w io.Writer, moves []Move) error {
+	var blocks []string
+	for _, move := range moves {
+		if move.isWithinSameWorkdir() {
+			blocks = append(blocks, move.block())
+			continue
+		}
+		if move.ImportID == "" {
+			return fmt.Errorf("cannot write import block for %s: source state has no resource ID", move.FromAddress)
+		}
+		blocks = append(blocks, fmt.Sprintf("removed {\n  from = %s\n\n  lifecycle {\n    destroy = false\n  }\n}", move.FromAddress))
+		blocks = append(blocks, fmt.Sprintf("import {\n  to = %s\n  id = %q\n}", move.ToAddress, move.ImportID))
+	}
+	if len(blocks) == 0 {
+		return nil
+	}
+	_, err := w.Write([]byte(strings.Join(blocks, "\n\n") + "\n"))
+	return err
+}
+
+// WriteRemovedBlock writes the source-side block for a cross-state move.
+func WriteRemovedBlock(w io.Writer, move Move) error {
+	if move.isWithinSameWorkdir() {
+		return fmt.Errorf("removed blocks are only for cross-workdir moves")
+	}
+	_, err := fmt.Fprintf(w, "removed {\n  from = %s\n\n  lifecycle {\n    destroy = false\n  }\n}\n", move.FromAddress)
+	return err
+}
+
+// WriteImportBlock writes the destination-side block for a cross-state move.
+func WriteImportBlock(w io.Writer, move Move) error {
+	if move.ImportID == "" {
+		return fmt.Errorf("cannot write import block for %s: source state has no resource ID", move.FromAddress)
+	}
+	_, err := fmt.Fprintf(w, "import {\n  to = %s\n  id = %q\n}\n", move.ToAddress, move.ImportID)
+	return err
+}
+
+// WriteImportCommands emits a conservative cross-backend transfer. It imports
+// the destination first and removes the source binding second; same-workdir
+// moves remain state mv commands.
+func WriteImportCommands(w io.Writer, moves []Move, terraformBin string) error {
+	var commands []string
+	for _, move := range moves {
+		if !move.isWithinSameWorkdir() && move.ImportID == "" {
+			return fmt.Errorf("cannot write import command for %s: source state has no resource ID", move.FromAddress)
+		}
+		commands = append(commands,
+			fmt.Sprintf("%s -chdir=%q import %q %q", terraformBin, move.ToWorkdir, move.ToAddress, move.ImportID),
+		)
+		if move.isWithinSameWorkdir() {
+			commands[len(commands)-1] = fmt.Sprintf("%s -chdir=%q state mv %q %q", terraformBin, move.FromWorkdir, move.FromAddress, move.ToAddress)
+		} else {
+			// Import first so a failed destination operation does not lose the
+			// source binding.
+			commands = append(commands, fmt.Sprintf("%s -chdir=%q state rm %q", terraformBin, move.FromWorkdir, move.FromAddress))
+		}
+	}
+	_, err := fmt.Fprintln(w, strings.Join(commands, "\n"))
 	return err
 }
 

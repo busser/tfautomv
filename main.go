@@ -53,12 +53,8 @@ func run() error {
 	 * Detect any obvious issues with the user's configuration.
 	 */
 
-	if outputFormat != "auto" && outputFormat != "blocks" && outputFormat != "commands" {
+	if outputFormat != "auto" && outputFormat != "blocks" && outputFormat != "commands" && outputFormat != "import-commands" {
 		return fmt.Errorf("unknown output format %q", outputFormat)
-	}
-
-	if outputFormat == "blocks" && len(flag.Args()) > 1 {
-		return fmt.Errorf("blocks output format is not supported for multiple modules")
 	}
 
 	if usePreplanned && (skipInit || skipRefresh) {
@@ -136,6 +132,14 @@ func run() error {
 	mergedPlan := engine.MergePlans(plans)
 	comparisons := engine.CompareAll(mergedPlan, userRules)
 	moves := engine.DetermineMoves(comparisons)
+	if requireNetZero {
+		if len(mergedPlan.ToCreate) != len(mergedPlan.ToDelete) {
+			return fmt.Errorf("net-zero validation failed: %d creates and %d deletes", len(mergedPlan.ToCreate), len(mergedPlan.ToDelete))
+		}
+		if len(moves) != len(mergedPlan.ToCreate) {
+			return fmt.Errorf("net-zero validation failed: only %d of %d planned creates have unique matches", len(moves), len(mergedPlan.ToCreate))
+		}
+	}
 
 	/*
 	 * Step 4: Print a human-readable summary for the user
@@ -160,6 +164,10 @@ func run() error {
 
 	terraformMoves := engineMovesToTerraformMoves(moves)
 	sameModule, differentModule := categorizeMoves(terraformMoves)
+	if dryRun {
+		printMappingReport(terraformMoves)
+		return nil
+	}
 
 	switch outputFormat {
 	case "auto":
@@ -177,11 +185,15 @@ func run() error {
 			}
 		}
 	case "blocks":
-		if err := writeMovedBlocks(sameModule); err != nil {
+		if err := writeMigrationBlocks(terraformMoves); err != nil {
 			return err
 		}
 	case "commands":
 		if err := writeMoveCommands(terraformMoves, terraformOptions...); err != nil {
+			return err
+		}
+	case "import-commands":
+		if err := writeImportCommands(terraformMoves); err != nil {
 			return err
 		}
 	default:
@@ -204,12 +216,14 @@ var (
 	verbosity      int
 	preplannedFile string
 	usePreplanned  bool
+	dryRun         bool
+	requireNetZero bool
 )
 
 func parseFlags() {
 	flag.StringSliceVar(&ignoreRules, "ignore", nil, "ignore differences based on a `rule`")
 	flag.BoolVar(&noColor, "no-color", false, "disable color in output")
-	flag.StringVarP(&outputFormat, "output", "o", "auto", "output `format` of moves (\"auto\", \"blocks\" or \"commands\")")
+	flag.StringVarP(&outputFormat, "output", "o", "auto", "output `format` of moves (\"auto\", \"blocks\", \"commands\" or \"import-commands\")")
 	flag.BoolVarP(&printVersion, "version", "V", false, "print version and exit")
 	flag.BoolVarP(&skipInit, "skip-init", "s", false, "skip running terraform init")
 	flag.BoolVarP(&skipRefresh, "skip-refresh", "S", false, "skip running terraform refresh")
@@ -217,6 +231,8 @@ func parseFlags() {
 	flag.CountVarP(&verbosity, "verbosity", "v", "increase verbosity (can be specified multiple times)")
 	flag.BoolVar(&usePreplanned, "preplanned", false, "use existing plan files instead of running terraform plan")
 	flag.StringVar(&preplannedFile, "preplanned-file", "tfplan.bin", "plan file name when using --preplanned")
+	flag.BoolVar(&dryRun, "dry-run", false, "show resource mappings without writing files or state commands")
+	flag.BoolVar(&requireNetZero, "require-net-zero", false, "fail unless planned creates equal deletes and every operation matches")
 
 	flag.Parse()
 }
@@ -230,10 +246,27 @@ func engineMovesToTerraformMoves(moves []engine.Move) []terraform.Move {
 			ToWorkdir:   m.DestinationModule,
 			FromAddress: m.SourceAddress,
 			ToAddress:   m.DestinationAddress,
+			ImportID:    m.ImportID,
 		})
 	}
 
 	return terraformMoves
+}
+
+// printMappingReport gives dry-run users a complete mapping before any state
+// or configuration output is changed.
+func printMappingReport(moves []terraform.Move) {
+	if len(moves) == 0 {
+		fmt.Println("No resource mappings found.")
+		return
+	}
+	for _, move := range moves {
+		fmt.Printf("%s:%s -> %s:%s", move.FromWorkdir, move.FromAddress, move.ToWorkdir, move.ToAddress)
+		if move.ImportID != "" {
+			fmt.Printf(" (id=%s)", move.ImportID)
+		}
+		fmt.Println()
+	}
 }
 
 func getPlans(ctx context.Context, workdirs []string, options []terraform.Option) ([]engine.Plan, error) {
@@ -405,6 +438,61 @@ func writeMovedBlocks(moves []terraform.Move) error {
 		os.Stderr.WriteString("\n")
 	}
 
+	return nil
+}
+
+func writeMigrationBlocks(moves []terraform.Move) error {
+	if len(moves) == 0 {
+		return nil
+	}
+
+	for _, move := range moves {
+		if move.FromWorkdir == move.ToWorkdir {
+			if err := appendMigrationBlock(filepath.Join(move.FromWorkdir, "moves.tf"), move, false); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := appendMigrationBlock(filepath.Join(move.FromWorkdir, "state-migration.tf"), move, true); err != nil {
+			return err
+		}
+		if err := appendMigrationBlock(filepath.Join(move.ToWorkdir, "state-migration.tf"), move, false); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func appendMigrationBlock(path string, move terraform.Move, source bool) error {
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open %q: %w", path, err)
+	}
+	if move.FromWorkdir == move.ToWorkdir {
+		err = terraform.WriteMovedBlocks(file, []terraform.Move{move})
+	} else if source {
+		err = terraform.WriteRemovedBlock(file, move)
+	} else {
+		err = terraform.WriteImportBlock(file, move)
+	}
+	closeErr := file.Close()
+	if err != nil {
+		return fmt.Errorf("failed to write migration block: %w", err)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("failed to close %q: %w", path, closeErr)
+	}
+	os.Stderr.WriteString(pretty.Colorf("migration block written to [bold][green]%s", path) + "\n")
+	return nil
+}
+
+func writeImportCommands(moves []terraform.Move) error {
+	if len(moves) == 0 {
+		return nil
+	}
+	if err := terraform.WriteImportCommands(os.Stdout, moves, terraformBin); err != nil {
+		return fmt.Errorf("failed to write import commands: %w", err)
+	}
 	return nil
 }
 

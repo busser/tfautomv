@@ -16,6 +16,9 @@ type Move struct {
 	SourceAddress string
 	// The resource's address after the move.
 	DestinationAddress string
+
+	// The provider ID recorded in the source state, used for import commands.
+	ImportID string
 }
 
 func DetermineMoves(comparisons []ResourceComparison) []Move {
@@ -53,6 +56,7 @@ func DetermineMoves(comparisons []ResourceComparison) []Move {
 			SourceAddress:      comparison.ToDelete.Address,
 			DestinationModule:  comparison.ToCreate.ModuleID,
 			DestinationAddress: comparison.ToCreate.Address,
+			ImportID:           resourceImportID(comparison.ToDelete),
 		}
 		moves = append(moves, m)
 	}
@@ -61,6 +65,13 @@ func DetermineMoves(comparisons []ResourceComparison) []Move {
 	sortMoves(moves)
 
 	return moves
+}
+
+func resourceImportID(resource Resource) string {
+	if id, ok := resource.Attributes["id"].(string); ok {
+		return id
+	}
+	return ""
 }
 
 func sortMoves(moves []Move) {

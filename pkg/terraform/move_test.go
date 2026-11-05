@@ -182,3 +182,39 @@ func TestWriteMoveCommands(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteMigrationBlocks(t *testing.T) {
+	var buf bytes.Buffer
+	moves := []Move{{
+		FromWorkdir: "/source",
+		ToWorkdir:   "/destination",
+		FromAddress: "aws_instance.old",
+		ToAddress:   "aws_instance.new",
+		ImportID:    "i-123",
+	}}
+	if err := WriteMigrationBlocks(&buf, moves); err != nil {
+		t.Fatal(err)
+	}
+	want := "removed {\n  from = aws_instance.old\n\n  lifecycle {\n    destroy = false\n  }\n}\n\nimport {\n  to = aws_instance.new\n  id = \"i-123\"\n}\n"
+	if got := buf.String(); got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+func TestWriteImportCommandsImportsBeforeRemoving(t *testing.T) {
+	var buf bytes.Buffer
+	moves := []Move{{
+		FromWorkdir: "/source",
+		ToWorkdir:   "/destination",
+		FromAddress: "aws_instance.old",
+		ToAddress:   "aws_instance.new",
+		ImportID:    "i-123",
+	}}
+	if err := WriteImportCommands(&buf, moves, "terraform"); err != nil {
+		t.Fatal(err)
+	}
+	want := "terraform -chdir=\"/destination\" import \"aws_instance.new\" \"i-123\"\nterraform -chdir=\"/source\" state rm \"aws_instance.old\"\n"
+	if got := buf.String(); got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
