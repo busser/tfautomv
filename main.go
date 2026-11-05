@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-version"
@@ -132,12 +133,12 @@ func run() error {
 	mergedPlan := engine.MergePlans(plans)
 	comparisons := engine.CompareAll(mergedPlan, userRules)
 	moves := engine.DetermineMoves(comparisons)
+	var netZeroError error
 	if requireNetZero {
 		if len(mergedPlan.ToCreate) != len(mergedPlan.ToDelete) {
-			return fmt.Errorf("net-zero validation failed: %d creates and %d deletes", len(mergedPlan.ToCreate), len(mergedPlan.ToDelete))
-		}
-		if len(moves) != len(mergedPlan.ToCreate) {
-			return fmt.Errorf("net-zero validation failed: only %d of %d planned creates have unique matches", len(moves), len(mergedPlan.ToCreate))
+			netZeroError = fmt.Errorf("net-zero validation failed: %d creates and %d deletes", len(mergedPlan.ToCreate), len(mergedPlan.ToDelete))
+		} else if len(moves) != len(mergedPlan.ToCreate) {
+			netZeroError = fmt.Errorf("net-zero validation failed: only %d of %d planned creates have unique matches", len(moves), len(mergedPlan.ToCreate))
 		}
 	}
 
@@ -166,7 +167,16 @@ func run() error {
 	sameModule, differentModule := categorizeMoves(terraformMoves)
 	if dryRun {
 		printMappingReport(terraformMoves)
+		if netZeroError != nil {
+			printMigrationDiagnostics(mergedPlan, comparisons, moves)
+			return netZeroError
+		}
 		return nil
+	}
+	if netZeroError != nil {
+		printMappingReport(terraformMoves)
+		printMigrationDiagnostics(mergedPlan, comparisons, moves)
+		return netZeroError
 	}
 
 	switch outputFormat {
@@ -266,6 +276,35 @@ func printMappingReport(moves []terraform.Move) {
 			fmt.Printf(" (id=%s)", move.ImportID)
 		}
 		fmt.Println()
+	}
+}
+
+// printMigrationDiagnostics explains why strict matching rejected a plan so
+// users can distinguish a real configuration change from an ambiguous move.
+func printMigrationDiagnostics(plan engine.Plan, comparisons []engine.ResourceComparison, moves []engine.Move) {
+	matched := make(map[string]bool)
+	for _, move := range moves {
+		matched[move.SourceModule+":"+move.SourceAddress] = true
+		matched[move.DestinationModule+":"+move.DestinationAddress] = true
+	}
+	fmt.Printf("Migration diagnostics: %d creates, %d deletes, %d unique mappings\n", len(plan.ToCreate), len(plan.ToDelete), len(moves))
+	for _, resource := range plan.ToCreate {
+		key := resource.ModuleID + ":" + resource.Address
+		if !matched[key] {
+			fmt.Printf("  unmatched create: %s:%s (%s)\n", resource.ModuleID, resource.Address, resource.Type)
+		}
+	}
+	for _, resource := range plan.ToDelete {
+		key := resource.ModuleID + ":" + resource.Address
+		if !matched[key] {
+			fmt.Printf("  unmatched delete: %s:%s (%s)\n", resource.ModuleID, resource.Address, resource.Type)
+		}
+	}
+	for _, comparison := range comparisons {
+		if comparison.IsMatch() {
+			continue
+		}
+		fmt.Printf("  non-matching candidate: %s:%s -> %s:%s; differing attributes: %s\n", comparison.ToDelete.ModuleID, comparison.ToDelete.Address, comparison.ToCreate.ModuleID, comparison.ToCreate.Address, strings.Join(comparison.MismatchingAttributes, ", "))
 	}
 }
 
