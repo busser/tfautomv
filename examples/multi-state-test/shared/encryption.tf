@@ -4,3 +4,7 @@ resource "terraform_data" "encryption" {
     purpose = "shared"
   }
 }
+
+output "encryption_id" {
+  value = terraform_data.encryption.id
+}

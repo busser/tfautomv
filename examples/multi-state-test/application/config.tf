@@ -4,3 +4,7 @@ resource "terraform_data" "configuration" {
     purpose = "application"
   }
 }
+
+output "configuration_id" {
+  value = terraform_data.configuration.id
+}

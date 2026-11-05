@@ -4,3 +4,7 @@ resource "terraform_data" "dns" {
     purpose = "shared"
   }
 }
+
+output "dns_id" {
+  value = terraform_data.dns.id
+}

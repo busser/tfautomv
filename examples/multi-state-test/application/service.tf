@@ -4,3 +4,7 @@ resource "terraform_data" "service" {
     purpose = "application"
   }
 }
+
+output "service_id" {
+  value = terraform_data.service.id
+}

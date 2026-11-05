@@ -4,3 +4,7 @@ resource "terraform_data" "gateway" {
     purpose = "move-between-states"
   }
 }
+
+output "gateway_id" {
+  value = terraform_data.gateway.id
+}

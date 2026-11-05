@@ -4,3 +4,7 @@ resource "terraform_data" "subnet" {
     purpose = "network"
   }
 }
+
+output "subnet_id" {
+  value = terraform_data.subnet.id
+}

@@ -4,3 +4,7 @@ resource "terraform_data" "registry" {
     purpose = "move-between-states"
   }
 }
+
+output "registry_id" {
+  value = terraform_data.registry.id
+}
