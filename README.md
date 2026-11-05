@@ -150,6 +150,7 @@ candidate; ambiguous matches fail closed.
 ```bash
 tfautomv \
   --migration-plan=network=network/tfplan.json \
+  --migration-plan=shared=shared/tfplan.json \
   --migration-plan=application=application/tfplan.json \
   --migration-dry-run
 ```
