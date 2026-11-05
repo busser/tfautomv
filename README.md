@@ -130,6 +130,25 @@ Terraform does not natively support moving resources across directories. To work
 
 This requires the `commands` output format. Terraform's `moved` block syntax does not support cross-directory moves.
 
+For a reviewable migration between separate state files or remote backends,
+use `--output=blocks`. Same-directory moves are written as `moved` blocks;
+cross-directory moves write a destroy-free `removed` block in the source
+directory and an `import` block in the destination directory:
+
+```bash
+tfautomv --preplanned --output=blocks ./network ./application
+```
+
+If direct state-file transfer is not appropriate, `--output=import-commands`
+generates destination-first `terraform import` commands followed by source
+`terraform state rm` commands for cross-directory moves. Same-directory moves
+remain `terraform state mv` commands.
+
+Use `--dry-run` to print the complete resource mapping without writing blocks
+or commands. Use `--require-net-zero` to fail unless the supplied plans have
+equal numbers of creates and deletes and every planned operation has a unique
+match.
+
 ### Skipping init and refresh
 
 `tfautomv` runs `init` and `refresh` by default. To skip them and iterate faster:
